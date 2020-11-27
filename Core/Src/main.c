@@ -98,8 +98,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_GPIO_TogglePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin);               //Toggle Gpio
-    HAL_Delay(1000);					                     //Delay 1 second
   }
   /* USER CODE END 3 */
 }
@@ -169,16 +167,74 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, STATUS_LED_Pin|TDBP_Pin|TSEL_Pin|TBSY_Pin
+                          |TCD_Pin|TMSG_Pin|TREQ_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : STATUS_LED_Pin */
-  GPIO_InitStruct.Pin = STATUS_LED_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, TDB0_Pin|TDB1_Pin|TDB2_Pin|SPI_CS_Pin
+                          |TDB3_Pin|TDB4_Pin|TDB5_Pin|TDB6_Pin
+                          |TDB7_Pin|SPI_RST_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(TIO_GPIO_Port, TIO_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : STATUS_LED_Pin TDBP_Pin TSEL_Pin TBSY_Pin
+                           TCD_Pin TMSG_Pin TREQ_Pin */
+  GPIO_InitStruct.Pin = STATUS_LED_Pin|TDBP_Pin|TSEL_Pin|TBSY_Pin
+                          |TCD_Pin|TMSG_Pin|TREQ_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(STATUS_LED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RRST_Pin RDBP_Pin */
+  GPIO_InitStruct.Pin = RRST_Pin|RDBP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RDB0_Pin RDB1_Pin RDB2_Pin RDB3_Pin
+                           RDB4_Pin RDB5_Pin RDB6_Pin RDB7_Pin
+                           RSEL_Pin RBSY_Pin RACK_Pin RATN_Pin */
+  GPIO_InitStruct.Pin = RDB0_Pin|RDB1_Pin|RDB2_Pin|RDB3_Pin
+                          |RDB4_Pin|RDB5_Pin|RDB6_Pin|RDB7_Pin
+                          |RSEL_Pin|RBSY_Pin|RACK_Pin|RATN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : TDB0_Pin TDB1_Pin TDB2_Pin SPI_CS_Pin
+                           TDB3_Pin TDB4_Pin TDB5_Pin TDB6_Pin
+                           TDB7_Pin SPI_RST_Pin */
+  GPIO_InitStruct.Pin = TDB0_Pin|TDB1_Pin|TDB2_Pin|SPI_CS_Pin
+                          |TDB3_Pin|TDB4_Pin|TDB5_Pin|TDB6_Pin
+                          |TDB7_Pin|SPI_RST_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB13 PB14 PB15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : TIO_Pin */
+  GPIO_InitStruct.Pin = TIO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(TIO_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SPI_INT_Pin */
+  GPIO_InitStruct.Pin = SPI_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(SPI_INT_GPIO_Port, &GPIO_InitStruct);
 
 }
 

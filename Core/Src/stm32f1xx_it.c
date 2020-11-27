@@ -182,6 +182,13 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
+  static int i = 0;
+  if (i == 0)
+    HAL_GPIO_WritePin(STATUS_LED_GPIO_Port,STATUS_LED_Pin,GPIO_PIN_SET);
+  else if (i == 500)
+    HAL_GPIO_WritePin(STATUS_LED_GPIO_Port,STATUS_LED_Pin,GPIO_PIN_RESET);
+
+  i = (i + 1) % 1000; // looping every 1 seconds
 
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
