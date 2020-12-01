@@ -62,6 +62,8 @@ void Error_Handler(void);
 #define STATUS_LED_GPIO_Port GPIOC
 #define RRST_Pin GPIO_PIN_0
 #define RRST_GPIO_Port GPIOC
+#define RBSY_Pin GPIO_PIN_2
+#define RBSY_GPIO_Port GPIOC
 #define RDB0_Pin GPIO_PIN_0
 #define RDB0_GPIO_Port GPIOA
 #define RDB1_Pin GPIO_PIN_1
@@ -96,8 +98,6 @@ void Error_Handler(void);
 #define RDBP_GPIO_Port GPIOC
 #define RSEL_Pin GPIO_PIN_8
 #define RSEL_GPIO_Port GPIOA
-#define RBSY_Pin GPIO_PIN_9
-#define RBSY_GPIO_Port GPIOA
 #define RACK_Pin GPIO_PIN_10
 #define RACK_GPIO_Port GPIOA
 #define RATN_Pin GPIO_PIN_13
