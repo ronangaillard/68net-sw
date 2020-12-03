@@ -5,7 +5,10 @@
 #ifndef INC_68NET_HELPERS_H
 #define INC_68NET_HELPERS_H
 
-#include "usbd_cdc_if.h"
+#include <stdarg.h>
 
-#define LOG(buffer) while(CDC_Transmit_FS((uint8_t*)buffer, strlen(buffer)) != HAL_OK);
+void LOG(const char *format, ...);
+
+//void LOG(const char *hello);
+
 #endif //INC_68NET_HELPERS_H

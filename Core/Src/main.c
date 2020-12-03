@@ -122,7 +122,7 @@ int main(void) {
     /* USER CODE BEGIN 3 */
     // Wait for reset
     HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
-    while (RSEL() || RBSY());
+    while (RSEL() || RBSY() || !RRST());
 
     requestId = RDB0_GPIO_Port->IDR;
     if ((~requestId & SCSI_ADDRESS) == SCSI_ADDRESS) {
@@ -134,6 +134,19 @@ int main(void) {
 
       if (!RATN()) {
         LOG("RATN OK\n");
+        // Message out
+        uint8_t message = 0;
+        TCD(GPIO_PIN_SET); // Data out (initiator to target)
+        TMSG(GPIO_PIN_SET);
+        message = readHandshake();
+        LOG("MESSAGE : 0x%02X\n", message & 0xff);
+
+
+        TCD(GPIO_PIN_SET); // Data out (initiator to target)
+        while (!RATN());
+
+        TMSG(GPIO_PIN_RESET);
+        TBSY(GPIO_PIN_RESET);
       }
 
       TCD(GPIO_PIN_SET);
@@ -153,14 +166,25 @@ int main(void) {
       for (int i = 6; i < len; i++) {
         cmd[i] = readHandshake();
       }
+
       sprintf(buffer, "CMD : 0x%02X\n", cmd[0]);
       LOG(buffer);
-
 
       switch (cmd[0]) {
         case 0x12:
           LOG("[Inquiry]\n");
-          status = onInquiryCommand(cmd[4]);
+          status = onInquiryCommand(cmd);
+          break;
+        case 0x09: // "Set Filter"
+          LOG("[Set Filter]\n");
+          onSetFilter(cmd);
+          break;
+        case 0x0C: // "Medium Sense"
+          LOG("[Medium Sense]\n");
+          break;
+        case 0x05: // "Send Packet"
+          LOG("[Send Packet]\n");
+          onSendPacket(cmd);
           break;
         default:
           LOG("UNDEFINED CMD\n");

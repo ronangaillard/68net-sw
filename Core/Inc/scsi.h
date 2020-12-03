@@ -6,6 +6,7 @@
 #define INC_68NET_SCSI_H
 
 #define SCSI_ADDRESS 1 << 5
+#define MAXIMUM_TRANSFER_LENGTH 1522
 
 #define RRST() !HAL_GPIO_ReadPin(RRST_GPIO_Port, RRST_Pin)
 #define RBSY() !HAL_GPIO_ReadPin(RBSY_GPIO_Port, RBSY_Pin)
@@ -26,7 +27,11 @@ void writeHandshake(uint8_t d);
 
 void writeDataPhase(int len, const uint8_t *p);
 
-uint8_t onInquiryCommand(uint8_t len);
+uint8_t onInquiryCommand(uint8_t *cmd);
+
+void onSetFilter(uint8_t *cmd);
+
+void onSendPacket(uint8_t *cmd);
 
 
 #endif //INC_68NET_SCSI_H
