@@ -59,7 +59,7 @@ void writeDataPhase(int len, const uint8_t *p) {
   LOG(buf);
 }
 
-uint8_t onInquiryCommand(uint8_t *cmd) {
+uint8_t onInquiryCommand(const uint8_t *cmd) {
   static uint8_t buf[96] = {
           // bytes 0-35 are the standard inquiry data
           0x09, 0x00, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00,
@@ -93,7 +93,7 @@ uint8_t onInquiryCommand(uint8_t *cmd) {
   return 0x00;
 }
 
-void onSetFilter(uint8_t *cmd) {
+void onSetFilter(const uint8_t *cmd) {
   uint8_t data[8] = {0}; // init to 0x00 on all
   uint8_t alloc = cmd[4];
   if (alloc > 8) alloc = 8;
@@ -107,21 +107,13 @@ void onSetFilter(uint8_t *cmd) {
   TCD(GPIO_PIN_SET);
 }
 
-void onSendPacket(uint8_t *cmd) {
+void onSendPacket(const uint8_t *cmd) {
   // parse the packet header, limiting total length to 2047
-  static uint16_t packetLength = 0;
-  LOG(" packetLength %" PRIu16 " bytes\n", packetLength);
-  packetLength = (cmd[3] << 8);
-  LOG(" packetLength %" PRIu16 " bytes\n", packetLength);
-  packetLength += cmd[4];
-  LOG(" packetLength %" PRIu16 " bytes\n", packetLength);
-  packetLength &= 0x07ff;
-  LOG(" packetLength %" PRIu16 " bytes\n", packetLength);
+  int16_t packetLength = ((cmd[3] & 7) << 8) + cmd[4];
   if (packetLength > MAXIMUM_TRANSFER_LENGTH) {
     packetLength = MAXIMUM_TRANSFER_LENGTH;
   }
-  LOG("cmd[4] = %" PRIu8 " cmd[3] = %" PRIu8 "\n", cmd[4] & 0xff, cmd[3] & 0xff);
-  LOG("packet packetLength %" PRIu16 " bytes\n", packetLength);
+  LOG("packet length %" PRIu16 " bytes\n", packetLength);
   // read stream from initiator
 
   TCD(GPIO_PIN_RESET); // Data out (initiator to target)
@@ -131,6 +123,8 @@ void onSendPacket(uint8_t *cmd) {
     LOG(".");
 
   }
+  LOG("\n");
+  LOG("packet received\n");
 
   TCD(GPIO_PIN_SET);
 }

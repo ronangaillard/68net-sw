@@ -9,6 +9,4 @@
 
 void LOG(const char *format, ...);
 
-//void LOG(const char *hello);
-
 #endif //INC_68NET_HELPERS_H

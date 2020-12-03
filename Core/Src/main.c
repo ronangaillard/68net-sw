@@ -113,14 +113,17 @@ int main(void) {
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint8_t requestId = 0;
+  uint8_t requestId;
   char buffer[100];
   uint8_t status;
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "EndlessLoop"
   while (1) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
     // Wait for reset
+    status = 0;
     HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
     while (RSEL() || RBSY() || !RRST());
 
@@ -133,9 +136,9 @@ int main(void) {
       while (!RSEL());
 
       if (!RATN()) {
-        LOG("RATN OK\n");
+        LOG("ATN !!\n");
         // Message out
-        uint8_t message = 0;
+        uint8_t message;
         TCD(GPIO_PIN_SET); // Data out (initiator to target)
         TMSG(GPIO_PIN_SET);
         message = readHandshake();
@@ -161,7 +164,7 @@ int main(void) {
       cmd[5] = readHandshake();
 
       static const int cmd_class_len[8] = {6, 10, 10, 6, 6, 12, 6, 6};
-      int len = cmd_class_len[cmd[0] >> 5];
+      int len = cmd_class_len[cmd[0] >> 5u];
 
       for (int i = 6; i < len; i++) {
         cmd[i] = readHandshake();
@@ -191,12 +194,21 @@ int main(void) {
       }
 
       // Status
+      TIO(GPIO_PIN_SET);
       TCD(GPIO_PIN_SET);
+      LOG("status (%x) ...", status);
       writeHandshake(status);
+      LOG(" ok\n");
+      if (!RATN())
+        LOG("ATN !!\n");
 
       // Message In
       TMSG(GPIO_PIN_SET);
+      LOG("message in (%x) ...", 0);
       writeHandshake(0);
+      LOG(" ok\n");
+      if (!RATN())
+        LOG("ATN !!\n");
 
       TCD(GPIO_PIN_RESET);
       TIO(GPIO_PIN_RESET);
@@ -208,6 +220,7 @@ int main(void) {
 
 
   }
+#pragma clang diagnostic pop
   /* USER CODE END 3 */
 }
 
