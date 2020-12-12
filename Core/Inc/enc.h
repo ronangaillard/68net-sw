@@ -8,12 +8,51 @@
 #include <stdint.h>
 
 #define ADDR_MASK 0x1f
+#define BANK_MASK        0x60
+#define SPRD_MASK        0x80
 
 #define OP_READ_CTRL_REG  0x00
 
 uint8_t encSendByte(uint8_t buffer);
 
 uint8_t encReadOp(uint8_t op, uint8_t address);
+
+void encWriteWord(uint8_t address, uint16_t data);
+
+void encWrite(uint8_t address, uint8_t data);
+
+void encWriteOp(uint8_t op, uint8_t address, uint8_t data);
+
+void encSetBank(uint8_t address);
+
+void netMoveTxpt(uint8_t buffer);
+
+void encSendPacket(uint8_t *packet, uint16_t length);
+
+void encWriteBuffer(uint16_t len, uint8_t *data);
+
+void encInit();
+
+uint16_t encPacketReceive(uint16_t maxlen, uint8_t *packet);
+
+#define _BV(n) (1 << n)
+
+// The RXSTART_INIT should be zero. See Rev. B4 Silicon Errata
+// buffer boundaries applied to internal 8K ram
+// the entire available packet buffer space is allocated
+//
+// start with recbuf at 0/
+#define RXSTART_INIT     0x0
+// receive buffer end
+#define RXSTOP_INIT      (0x1FFF-0x0600-1)
+// start TX buffer at 0x1FFF-0x0600, pace for one full ethernet frame (~1500 bytes)
+#define TXSTART_INIT     (0x1FFF-0x0600)
+// stp TX buffer at end of mem
+#define TXSTOP_INIT      0x1FFF
+//
+// max frame length which the conroller will accept:
+#define        MAX_FRAMELEN        1500        // (note: maximum ethernet frame length would be 1518)
+//#define MAX_FRAMELEN     600
 
 // All-bank registers
 #define EIE              0x1B
@@ -224,5 +263,245 @@ uint8_t encReadOp(uint8_t op, uint8_t address);
 #define ENC28J60_BIT_FIELD_SET       0x80
 #define ENC28J60_BIT_FIELD_CLR       0xA0
 #define ENC28J60_SOFT_RESET          0xFF
+#define ENC_OP_RCR 0x00
+#define ENC_OP_RBM 0x3A
+#define ENC_OP_WCR 0x40
+#define ENC_OP_WBM 0x7A
+#define ENC_OP_BFS 0x80
+#define ENC_OP_BFC 0xA0
+#define ENC_OP_SRC 0xFF
+
+/*
+ * Defines the high byte value for end of the region where the receive buffer
+ * is, starting at 0x000 and extending through 0xXXFF, where 0xXX is this
+ * value. All remaining space is allocated to the transmit buffer.
+ */
+#define NET_ERXNDH_VALUE    0x13
+
+/*
+ * Defines the starting point where packets to be transmitted are stored.
+ * There are two regions, each 1536 bytes in size reserved for this purpose.
+ * They can be switched between in the transmit functions based on the provided
+ * buffer selection value.
+ */
+#define NET_XMIT_BUF1       0x14
+#define NET_XMIT_BUF2       0x1A
+
+/*
+ * Defines the array offsets within received data where the various data
+ * structures are supposed to live, indexed from zero.
+ */
+#define NET_HEAD_RXPTL      0
+#define NET_HEAD_RXPTH      1
+#define NET_HEAD_RXLENL     2
+#define NET_HEAD_RXLENH     3
+#define NET_HEAD_STATL      4
+#define NET_HEAD_STATH      5
+
+/*
+ * Bit flags for the above registers.
+ */
+
+// EIE
+#define ENC_INTIE_bm _BV(7)
+#define ENC_PKTIE_bm _BV(6)
+#define ENC_DMAIE_bm _BV(5)
+#define ENC_LINKIE_bm _BV(4)
+#define ENC_TXIE_bm _BV(3)
+#define ENC_TXERIE_bm _BV(1)
+#define ENC_RXERIE_bm _BV(0)
+
+// EIR
+#define ENC_PKTIF_bm _BV(6)
+#define ENC_DMAIF_bm _BV(5)
+#define ENC_LINKIF_bm _BV(4)
+#define ENC_TXIF_bm _BV(3)
+#define ENC_TXERIF_bm _BV(1)
+#define ENC_RXERIF_bm _BV(0)
+
+// ESTAT
+#define ENC_INT_bm _BV(7)
+#define ENC_BUFER_bm _BV(6)
+#define ENC_LATECOL_bm _BV(4)
+#define ENC_RXBUSY_bm _BV(2)
+#define ENC_TXABRT_bm _BV(1)
+#define ENC_CLKRDY_bm _BV(0)
+
+// ECON2
+#define ENC_AUTOINC_bm _BV(7)
+#define ENC_PKTDEC_bm _BV(6)
+#define ENC_PWRSV_bm _BV(5)
+#define ENC_VRPS_bm _BV(3)
+
+// ECON1
+#define ENC_TXRST_bm _BV(7)
+#define ENC_RXRST_bm _BV(6)
+#define ENC_DMAST_bm _BV(5)
+#define ENC_CSUMEN_bm _BV(4)
+#define ENC_TXRTS_bm _BV(3)
+#define ENC_RXEN_bm _BV(2)
+#define ENC_BSEL1_bm _BV(1)
+#define ENC_BSEL0_bm _BV(0)
+
+// ERXFCON
+#define ENC_UCEN_bm _BV(7)
+#define ENC_ANDOR_bm _BV(6)
+#define ENC_CRCEN_bm _BV(5)
+#define ENC_PMEN_bm _BV(4)
+#define ENC_MPEN_bm _BV(3)
+#define ENC_HTEN_bm _BV(2)
+#define ENC_MCEN_bm _BV(1)
+#define ENC_BCEN_bm _BV(0)
+
+// MACON1
+#define ENC_TXPAUS_bm _BV(3)
+#define ENC_RXPAUS_bm _BV(2)
+#define ENC_PASSALL_bm _BV(1)
+#define ENC_MARXEN_bm _BV(0)
+
+// MACON3
+#define ENC_PADCFG2_bm _BV(7)
+#define ENC_PADCFG1_bm _BV(6)
+#define ENC_PADCFG0_bm _BV(5)
+#define ENC_TXCRCEN_bm _BV(4)
+#define ENC_PHDREN_bm _BV(3)
+#define ENC_HFRMEN_bm _BV(2)
+#define ENC_FRMLNEN_bm _BV(1)
+#define ENC_FULDPX_bm _BV(0)
+
+// MACON4
+#define ENC_DEFER_bm _BV(6)
+#define ENC_BPEN_bm _BV(5)
+#define ENC_NOBKOFF_bm _BV(4)
+
+// EBSTCON
+#define ENC_PSV2_bm _BV(7)
+#define ENC_PSV1_bm _BV(6)
+#define ENC_PSV0_bm _BV(5)
+#define ENC_PSEL_bm _BV(4)
+#define ENC_TMSEL1_bm _BV(3)
+#define ENC_TMSEL0_bm _BV(2)
+#define ENC_TME_bm _BV(1)
+#define ENC_BISTST_bm _BV(0)
+
+// MICMD
+#define ENC_MIISCAN_bm _BV(1)
+#define ENC_MIIRD_bm _BV(0)
+
+// MISTAT
+#define ENC_NVALID_bm _BV(2)
+#define ENC_SCAN_bm _BV(1)
+#define ENC_BUSY_bm _BV(0)
+
+// ECOCON
+#define ENC_COCON2_bm _BV(2)
+#define ENC_COCON1_bm _BV(1)
+#define ENC_COCON0_bm _BV(0)
+
+// EFLOCON
+#define ENC_FULDPXS_bm _BV(2)
+#define ENC_FCEN1_bm _BV(1)
+#define ENC_FCEN0_bm _BV(0)
+
+// start TX buffer at 0x1FFF-0x0600, pace for one full ethernet frame (~1500 bytes)
+#define TXSTART_INIT     (0x1FFF-0x0600)
+
+// ******* ETH *******
+#define ETH_HEADER_LEN  14
+// values of certain bytes:
+#define ETHTYPE_ARP_H_V 0x08
+#define ETHTYPE_ARP_L_V 0x06
+#define ETHTYPE_IP_H_V  0x08
+#define ETHTYPE_IP_L_V  0x00
+// byte positions in the ethernet frame:
+//
+// Ethernet type field (2bytes):
+#define ETH_TYPE_H_P 12
+#define ETH_TYPE_L_P 13
+//
+#define ETH_DST_MAC 0
+#define ETH_SRC_MAC 6
+
+
+// ******* ARP *******
+#define ETH_ARP_OPCODE_REPLY_H_V 0x0
+#define ETH_ARP_OPCODE_REPLY_L_V 0x02
+#define ETH_ARP_OPCODE_REQ_H_V 0x0
+#define ETH_ARP_OPCODE_REQ_L_V 0x01
+// start of arp header:
+#define ETH_ARP_P 0xe
+//
+#define ETHTYPE_ARP_L_V 0x06
+// arp.dst.ip
+#define ETH_ARP_DST_IP_P 0x26
+// arp.opcode
+#define ETH_ARP_OPCODE_H_P 0x14
+#define ETH_ARP_OPCODE_L_P 0x15
+// arp.src.mac
+#define ETH_ARP_SRC_MAC_P 0x16
+#define ETH_ARP_SRC_IP_P 0x1c
+#define ETH_ARP_DST_MAC_P 0x20
+#define ETH_ARP_DST_IP_P 0x26
+
+// ******* IP *******
+#define IP_HEADER_LEN    20
+
+#define IP_PROTO_ICMP_V    0x01
+#define IP_PROTO_TCP_V    0x06
+#define IP_PROTO_UDP_V    0x11
+#define IP_V4_V        0x40
+#define IP_HEADER_LENGTH_V  0x05
+
+#define IP_P        0x0E
+#define IP_HEADER_VER_LEN_P  0x0E
+#define IP_TOS_P      0x0F
+#define IP_TOTLEN_H_P    0x10
+#define IP_TOTLEN_L_P    0x11
+#define IP_ID_H_P      0x12
+#define IP_ID_L_P      0x13
+#define IP_FLAGS_P      0x14
+#define IP_FLAGS_H_P    0x14
+#define IP_FLAGS_L_P    0x15
+#define IP_TTL_P      0x16
+#define IP_PROTO_P      0x17
+#define IP_CHECKSUM_P    0x18
+#define IP_CHECKSUM_H_P    0x18
+#define IP_CHECKSUM_L_P    0x19
+#define IP_SRC_IP_P      0x1A
+#define IP_DST_IP_P      0x1E
+
+#define IP_SRC_P      0x1a
+#define IP_DST_P      0x1e
+#define IP_HEADER_LEN_VER_P 0xe
+
+// ip.src
+/*
+#define IP_SRC_P 0x1a
+#define IP_DST_P 0x1e
+#define IP_P 0xe
+#define IP_HEADER_LEN_VER_P 0xe
+#define IP_CHECKSUM_P 0x18
+#define IP_TTL_P 0x16
+#define IP_FLAGS_P 0x14
+#define IP_TOTLEN_H_P 0x10
+#define IP_TOTLEN_L_P 0x11
+#define IP_PROTO_P 0x17
+#define IP_PROTO_ICMP_V 1
+#define IP_PROTO_TCP_V 6
+// 17=0x11
+#define IP_PROTO_UDP_V 17
+#define IP_V4_V         0x40
+*/
+// ******* ICMP *******
+#define ICMP_TYPE_ECHOREPLY_V 0
+#define ICMP_TYPE_ECHOREQUEST_V 8
+//
+#define ICMP_TYPE_P 0x22
+#define ICMP_CHECKSUM_P 0x24
+#define ICMP_CHECKSUM_H_P 0x24
+#define ICMP_CHECKSUM_L_P 0x25
+#define ICMP_IDENT_H_P 0x26
+#define ICMP_IDENT_L_P 0x27
+#define ICMP_DATA_P 0x2a
 
 #endif //INC_68NET_ENC_H

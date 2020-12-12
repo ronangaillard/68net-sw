@@ -62,6 +62,20 @@ static void MX_SPI2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void fill_buf_p(uint8_t *buf, uint16_t len, const char *s) {
+  // fill in tcp data at position pos
+  //
+  // with no options the data starts after the checksum + 2 more bytes (urgent ptr)
+  while (len) {
+    *buf = *s;
+    buf++;
+    s++;
+    len--;
+  }
+
+}
+
+const char arpreqhdr[] = {0, 1, 8, 0, 6, 4, 0, 1};
 /* USER CODE END 0 */
 
 /**
@@ -124,11 +138,51 @@ int main(void) {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
   HAL_GPIO_WritePin(SPI_RST_GPIO_Port, SPI_RST_Pin, GPIO_PIN_SET);
+  encInit();
+  uint8_t arp[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xE0, 0x4C, 0x6D, 0x11, 0x08, 0x08, 0x06, 0x00, 0x01, 0x08,
+                   0x00, 0x06, 0x04, 0x00, 0x01, 0x00, 0xE0, 0x4C, 0x6D, 0x11, 0x08, 0xC0, 0xA8, 0x11, 0x02, 0x00, 0x00,
+                   0x00, 0x00, 0x00, 0x00, 0xC0, 0xA8, 0x11, 0x01};
+  uint8_t buf[400];
+  GPIO_PinState ps = GPIO_PIN_RESET;
+  uint8_t macaddr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+  uint8_t ip_we_search[] = {192, 168, 17, 1};
+  uint8_t ipaddr[] = {192, 168, 17, 17};
+
   while (1) {
-    uint8_t reg = encReadOp(OP_READ_CTRL_REG, ERDPTH);
-    LOG("%x\n", reg);
+//    encSendPacket(arp, 60);
+    uint8_t i = 0;
+    //
+    while (i < 6) {
+      buf[ETH_DST_MAC + i] = 0xff;
+      buf[ETH_SRC_MAC + i] = macaddr[i];
+      i++;
+    }
+    buf[ETH_TYPE_H_P] = ETHTYPE_ARP_H_V;
+    buf[ETH_TYPE_L_P] = ETHTYPE_ARP_L_V;
+    fill_buf_p(&buf[ETH_ARP_P], 8, arpreqhdr);
+    i = 0;
+    while (i < 6) {
+      buf[ETH_ARP_SRC_MAC_P + i] = macaddr[i];
+      buf[ETH_ARP_DST_MAC_P + i] = 0;
+      i++;
+    }
+    i = 0;
+    while (i < 4) {
+      buf[ETH_ARP_DST_IP_P + i] = *(ip_we_search + i);
+      buf[ETH_ARP_SRC_IP_P + i] = ipaddr[i];
+      i++;
+    }
+
+    // 0x2a=42=len of packet
+    encSendPacket(buf, 0x2a);
+    LOG("sent\n");
+    HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, ps);
+//    int size = encPacketReceive(400, rcvBuffer);
+//    LOG("received packet of %n bytes\n", size);
     HAL_Delay(1000);
+    ps = !ps;
   }
+
   while (1) {
     /* USER CODE END WHILE */
 

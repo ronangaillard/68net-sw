@@ -7,6 +7,11 @@
 #include "helpers.h"
 #include <stdio.h>
 #include <inttypes.h>
+#include <enc.h>
+#include <stdlib.h>
+
+// the selector for the TX buffer space
+static uint8_t txbuf;
 
 uint8_t readBus() {
   return (~(RDB0_GPIO_Port->IDR)) & 0xff;
@@ -115,16 +120,32 @@ void onSendPacket(const uint8_t *cmd) {
   }
   LOG("packet length %" PRIu16 " bytes\n", packetLength);
   // read stream from initiator
+  uint8_t packet[MAXIMUM_TRANSFER_LENGTH];
 
   TCD(GPIO_PIN_RESET); // Data out (initiator to target)
 
   for (uint16_t i = 0; i < packetLength; i++) {
-    readHandshake();
-    LOG(".");
+    packet[i] = readHandshake();
+    LOG("%x, ", packet[i]);
 
   }
   LOG("\n");
   LOG("packet received\n");
 
+
   TCD(GPIO_PIN_SET);
+
+  // TODO : check that no other packer is being sent
+// Set the write pointer to start of transmit buffer area
+  encWriteWord(EWRPTL, TXSTART_INIT);
+  // Set the TXND pointer to correspond to the packet size given
+  encWriteWord(ETXNDL, (TXSTART_INIT + packetLength));
+  // write per-packet control byte (0x00 means use macon3 settings)
+  encWriteOp(ENC28J60_WRITE_BUF_MEM, 0, 0x00);
+  // copy the packet into the transmit buffer
+  encWriteBuffer(packetLength, packet);
+  // send the contents of the transmit buffer onto the network
+  encWriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
+  // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
+  LOG("packet sent\n");
 }
