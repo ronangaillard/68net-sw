@@ -7,7 +7,7 @@
 #include "helpers.h"
 #include <stdio.h>
 #include <inttypes.h>
-#include <enc.h>
+#include "enc.h"
 #include <stdlib.h>
 
 // the selector for the TX buffer space
@@ -36,7 +36,8 @@ uint8_t readHandshake(void) {
 }
 
 void writeHandshake(uint8_t d) {
-  TDB0_GPIO_Port->ODR = d;
+  TDB0_GPIO_Port->ODR &= 0xff00;
+  TDB0_GPIO_Port->ODR |= d;
 
   if (getParity(d)) {
     TDBP(GPIO_PIN_SET);
@@ -131,21 +132,24 @@ void onSendPacket(const uint8_t *cmd) {
   }
   LOG("\n");
   LOG("packet received\n");
+  int j = 0;
+  uint8_t macaddr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+  while (j < 6) {
+    packet[ETH_SRC_MAC + j] = macaddr[j];
+    j++;
+  }
+  LOG("modified packet : \n");
 
+  for (uint16_t i = 0; i < packetLength; i++) {
+
+    LOG("%x, ", packet[i]);
+
+  }
+  LOG("\n");
 
   TCD(GPIO_PIN_SET);
 
-  // TODO : check that no other packer is being sent
-// Set the write pointer to start of transmit buffer area
-  encWriteWord(EWRPTL, TXSTART_INIT);
-  // Set the TXND pointer to correspond to the packet size given
-  encWriteWord(ETXNDL, (TXSTART_INIT + packetLength));
-  // write per-packet control byte (0x00 means use macon3 settings)
-  encWriteOp(ENC28J60_WRITE_BUF_MEM, 0, 0x00);
-  // copy the packet into the transmit buffer
-  encWriteBuffer(packetLength, packet);
-  // send the contents of the transmit buffer onto the network
-  encWriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
-  // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
+  encSendPacket(packet, packetLength);
+
   LOG("packet sent\n");
 }

@@ -147,41 +147,40 @@ int main(void) {
   uint8_t macaddr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
   uint8_t ip_we_search[] = {192, 168, 17, 1};
   uint8_t ipaddr[] = {192, 168, 17, 17};
-
-  while (1) {
 //    encSendPacket(arp, 60);
-    uint8_t i = 0;
-    //
-    while (i < 6) {
-      buf[ETH_DST_MAC + i] = 0xff;
-      buf[ETH_SRC_MAC + i] = macaddr[i];
-      i++;
-    }
-    buf[ETH_TYPE_H_P] = ETHTYPE_ARP_H_V;
-    buf[ETH_TYPE_L_P] = ETHTYPE_ARP_L_V;
-    fill_buf_p(&buf[ETH_ARP_P], 8, arpreqhdr);
-    i = 0;
-    while (i < 6) {
-      buf[ETH_ARP_SRC_MAC_P + i] = macaddr[i];
-      buf[ETH_ARP_DST_MAC_P + i] = 0;
-      i++;
-    }
-    i = 0;
-    while (i < 4) {
-      buf[ETH_ARP_DST_IP_P + i] = *(ip_we_search + i);
-      buf[ETH_ARP_SRC_IP_P + i] = ipaddr[i];
-      i++;
-    }
-
-    // 0x2a=42=len of packet
-    encSendPacket(buf, 0x2a);
-    LOG("sent\n");
-    HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, ps);
-//    int size = encPacketReceive(400, rcvBuffer);
-//    LOG("received packet of %n bytes\n", size);
-    HAL_Delay(1000);
-    ps = !ps;
+  uint8_t i = 0;
+  //
+  while (i < 6) {
+    buf[ETH_DST_MAC + i] = 0xff;
+    buf[ETH_SRC_MAC + i] = macaddr[i];
+    i++;
   }
+  buf[ETH_TYPE_H_P] = ETHTYPE_ARP_H_V;
+  buf[ETH_TYPE_L_P] = ETHTYPE_ARP_L_V;
+  fill_buf_p(&buf[ETH_ARP_P], 8, arpreqhdr);
+  i = 0;
+  while (i < 6) {
+    buf[ETH_ARP_SRC_MAC_P + i] = macaddr[i];
+    buf[ETH_ARP_DST_MAC_P + i] = 0;
+    i++;
+  }
+  i = 0;
+  while (i < 4) {
+    buf[ETH_ARP_DST_IP_P + i] = *(ip_we_search + i);
+    buf[ETH_ARP_SRC_IP_P + i] = ipaddr[i];
+    i++;
+  }
+
+  // 0x2a=42=len of packet
+  //encSendPacket(buf, 0x2a);
+  //LOG("sent\n");
+//  while (1) {
+////    encSendPacket(arp, 60);
+
+
+  // 0x2a=42=len of packet
+//  encSendPacket(buf, 42);
+//  }
 
   while (1) {
     /* USER CODE END WHILE */
@@ -190,7 +189,17 @@ int main(void) {
     // Wait for reset
     status = 0;
     HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
-    while (RSEL() || RBSY() || !RRST());
+//    while (1);
+    while (RSEL() || RBSY() || !RRST()) {
+//      int size = encPacketReceive(400, buf);
+//      if (size != 0) {
+//        LOG("received packet of %d bytes\n", size);
+//        for (int k = 0; k < size; k++)
+//          LOG("%02X ", buf[k]);
+//
+//        LOG("\n");
+//      }
+    }
 
     requestId = RDB0_GPIO_Port->IDR;
     if ((~requestId & SCSI_ADDRESS) == SCSI_ADDRESS) {
@@ -238,6 +247,8 @@ int main(void) {
       sprintf(buffer, "CMD : 0x%02X\n", cmd[0]);
       LOG(buffer);
 
+// Bug après cette ligne
+// sur de sur
       switch (cmd[0]) {
         case 0x12:
           LOG("[Inquiry]\n");
@@ -257,7 +268,8 @@ int main(void) {
         default:
           LOG("UNDEFINED CMD\n");
       }
-
+//      while (1);
+//      HAL_Delay(500);
       // Status
       TIO(GPIO_PIN_SET);
       TCD(GPIO_PIN_SET);
@@ -267,6 +279,8 @@ int main(void) {
       if (!RATN())
         LOG("ATN !!\n");
 
+
+      // bug avant cette ligne
       // Message In
       TMSG(GPIO_PIN_SET);
       LOG("message in (%x) ...", 0);

@@ -96,6 +96,7 @@ void netMoveTxpt(uint8_t buffer) {
 }
 
 void encSendPacket(uint8_t *packet, uint16_t length) {
+  encWriteOp(ENC28J60_BIT_FIELD_SET, EIE, 0);
   while (encReadOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_TXRTS) {
     // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
     if ((encRead(EIR) & EIR_TXERIF)) {
@@ -103,9 +104,9 @@ void encSendPacket(uint8_t *packet, uint16_t length) {
       encWriteOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRST);
     }
   }
-  // TODO : check that no other packer is being sent
 // Set the write pointer to start of transmit buffer area
   encWriteWord(EWRPTL, TXSTART_INIT);
+//  encWriteWord(ETXSTL, TXSTART_INIT);
   // Set the TXND pointer to correspond to the packet size given
   encWriteWord(ETXNDL, (TXSTART_INIT + length));
   // write per-packet control byte (0x00 means use macon3 settings)
@@ -275,28 +276,28 @@ void encInit() {
   // switch to bank 0
   encSetBank(ECON1);
   // enable interrutps
-  //encWriteOp(ENC28J60_BIT_FIELD_SET, EIE, EIE_INTIE | EIE_PKTIE);
+//  encWriteOp(ENC28J60_BIT_FIELD_SET, EIE, EIE_INTIE | EIE_PKTIE);
   // enable packet reception
-//  encWriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_RXEN);
+  encWriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_RXEN);
 
   // Set clock to 25MHz
 //  encWrite(ECOCON, 25 & 0x7);
 
-  int f;
-  for (f = 0; f < 3; f++) {
-    // 0x880 is PHLCON LEDB=on, LEDA=on
-    // encPhyWrite(PHLCON,0b0011 1000 1000 00 00);
-    encPhyWrite(PHLCON, 0x3880);
-    HAL_Delay(500);
-
-    // 0x990 is PHLCON LEDB=off, LEDA=off
-    // encPhyWrite(PHLCON,0b0011 1001 1001 00 00);
-    encPhyWrite(PHLCON, 0x3990);
-    HAL_Delay(500);
-  }
-
-  encPhyWrite(PHLCON, 0x3476);
-  HAL_Delay(100);
+//  int f;
+//  for (f = 0; f < 3; f++) {
+//    // 0x880 is PHLCON LEDB=on, LEDA=on
+//    // encPhyWrite(PHLCON,0b0011 1000 1000 00 00);
+//    encPhyWrite(PHLCON, 0x3880);
+//    HAL_Delay(500);
+//
+//    // 0x990 is PHLCON LEDB=off, LEDA=off
+//    // encPhyWrite(PHLCON,0b0011 1001 1001 00 00);
+//    encPhyWrite(PHLCON, 0x3990);
+//    HAL_Delay(500);
+//  }
+//
+//  encPhyWrite(PHLCON, 0x3476);
+//  HAL_Delay(100);
 }
 
 void encReadBuffer(uint16_t len, uint8_t *data) {

@@ -46,7 +46,7 @@ uint16_t encPacketReceive(uint16_t maxlen, uint8_t *packet);
 // receive buffer end
 #define RXSTOP_INIT      (0x1FFF-0x0600-1)
 // start TX buffer at 0x1FFF-0x0600, pace for one full ethernet frame (~1500 bytes)
-#define TXSTART_INIT     (0x1FFF-0x0600)
+//#define TXSTART_INIT     (0x1FFF-0x0600)
 // stp TX buffer at end of mem
 #define TXSTOP_INIT      0x1FFF
 //
@@ -404,8 +404,8 @@ uint16_t encPacketReceive(uint16_t maxlen, uint8_t *packet);
 #define ENC_FCEN0_bm _BV(0)
 
 // start TX buffer at 0x1FFF-0x0600, pace for one full ethernet frame (~1500 bytes)
-#define TXSTART_INIT     (0x1FFF-0x0600)
-
+//#define TXSTART_INIT     (0x1FFF-0x0600)
+#define TXSTART_INIT  0x14
 // ******* ETH *******
 #define ETH_HEADER_LEN  14
 // values of certain bytes:
