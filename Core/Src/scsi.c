@@ -52,16 +52,16 @@ void writeHandshake(uint8_t d) {
 }
 
 void writeDataPhase(int len, const uint8_t *p) {
-  LOG("DATAIN PHASE\n");
+  LOG("DATAIN PHASE\r\n");
   TCD(GPIO_PIN_RESET);
   TIO(GPIO_PIN_SET);
   for (int i = 0; i < len; i++) {
     writeHandshake(p[i]);
     LOG(".");
   }
-  LOG("\n");
+  LOG("\r\n");
   char buf[50];
-  sprintf(buf, "Wrote %d bytes\n", len);
+  sprintf(buf, "Wrote %d bytes\r\n", len);
   LOG(buf);
 }
 
@@ -92,7 +92,7 @@ uint8_t onInquiryCommand(const uint8_t *cmd) {
   uint16_t alloc = ((cmd[3] & 1) << 8) + cmd[4];
 
   char log[50];
-  sprintf(log, "Alloc %hu bytes\n", alloc);
+  sprintf(log, "Alloc %hu bytes\r\n", alloc);
   LOG(log);
 
   writeDataPhase(alloc, buf);
@@ -130,26 +130,26 @@ void onSendPacket(const uint8_t *cmd) {
     LOG("%x, ", packet[i]);
 
   }
-  LOG("\n");
-  LOG("packet received\n");
+  LOG("\r\n");
+  LOG("packet received\r\n");
   int j = 0;
   uint8_t macaddr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
   while (j < 6) {
     packet[ETH_SRC_MAC + j] = macaddr[j];
     j++;
   }
-  LOG("modified packet : \n");
+  LOG("modified packet : \r\n");
 
   for (uint16_t i = 0; i < packetLength; i++) {
 
     LOG("%x, ", packet[i]);
 
   }
-  LOG("\n");
+  LOG("\r\n");
 
   TCD(GPIO_PIN_SET);
 
   encSendPacket(packet, packetLength);
 
-  LOG("packet sent\n");
+  LOG("packet sent\r\n");
 }

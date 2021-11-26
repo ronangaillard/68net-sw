@@ -259,7 +259,7 @@ void encInit() {
   do {
     flags = encRead(ESTAT);
   } while (!(flags & ENC_CLKRDY_bm));
-  LOG("Oscillator  ready\n");
+  LOG("Oscillator  ready\r\n");
 
 
 // assign initial MAC address to what the configuration specifies
@@ -352,7 +352,7 @@ uint16_t encPacketReceive(uint16_t maxlen, uint8_t *packet) {
   // Move the RX read pointer to the start of the next received packet
   // This frees the memory we just read out
   encWriteWord(ERXRDPTL, gNextPacketPtr);
-  // However, compensate for the errata point 13, rev B4: enver write an even address!
+  // However, compensate for the errata point 13, rev B4: never write an even address!
   if ((gNextPacketPtr - 1 < RXSTART_INIT)
       || (gNextPacketPtr - 1 > RXSTOP_INIT)) {
     encWriteWord(ERXRDPTL, RXSTOP_INIT);

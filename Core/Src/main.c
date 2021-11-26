@@ -173,7 +173,7 @@ int main(void) {
 
   // 0x2a=42=len of packet
   //encSendPacket(buf, 0x2a);
-  //LOG("sent\n");
+  //LOG("sent\r\n");
 //  while (1) {
 ////    encSendPacket(arp, 60);
 
@@ -191,14 +191,15 @@ int main(void) {
     HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
 //    while (1);
     while (RSEL() || RBSY() || !RRST()) {
-//      int size = encPacketReceive(400, buf);
-//      if (size != 0) {
-//        LOG("received packet of %d bytes\n", size);
-//        for (int k = 0; k < size; k++)
-//          LOG("%02X ", buf[k]);
-//
-//        LOG("\n");
-//      }
+     int size = encPacketReceive(400, buf);
+     int size = 0;
+     if (size != 0) {
+       LOG("received packet of %d bytes\n", size);
+       for (int k = 0; k < size; k++)
+         LOG("%02X ", buf[k]);
+
+       LOG("\r\n");
+     }
     }
 
     requestId = RDB0_GPIO_Port->IDR;
@@ -206,11 +207,11 @@ int main(void) {
       HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
       TBSY(GPIO_PIN_SET);
       // Wait for SEL inactive
-      LOG("SELECTED\n");
+      LOG("SELECTED\r\n");
       while (!RSEL());
 
       if (!RATN()) {
-        LOG("ATN !!\n");
+        LOG("ATN !!\r\n");
         // Message out
         uint8_t message;
         TCD(GPIO_PIN_SET); // Data out (initiator to target)
@@ -244,29 +245,29 @@ int main(void) {
         cmd[i] = readHandshake();
       }
 
-      sprintf(buffer, "CMD : 0x%02X\n", cmd[0]);
+      sprintf(buffer, "CMD : 0x%02X\r\n", cmd[0]);
       LOG(buffer);
 
 // Bug après cette ligne
 // sur de sur
       switch (cmd[0]) {
         case 0x12:
-          LOG("[Inquiry]\n");
+          LOG("[Inquiry]\r\n");
           status = onInquiryCommand(cmd);
           break;
         case 0x09: // "Set Filter"
-          LOG("[Set Filter]\n");
+          LOG("[Set Filter]\r\n");
           onSetFilter(cmd);
           break;
         case 0x0C: // "Medium Sense"
-          LOG("[Medium Sense]\n");
+          LOG("[Medium Sense]\r\n");
           break;
         case 0x05: // "Send Packet"
-          LOG("[Send Packet]\n");
+          LOG("[Send Packet]\r\n");
           onSendPacket(cmd);
           break;
         default:
-          LOG("UNDEFINED CMD\n");
+          LOG("UNDEFINED CMD\r\n");
       }
 //      while (1);
 //      HAL_Delay(500);
@@ -275,9 +276,9 @@ int main(void) {
       TCD(GPIO_PIN_SET);
       LOG("status (%x) ...", status);
       writeHandshake(status);
-      LOG(" ok\n");
+      LOG(" ok\r\n");
       if (!RATN())
-        LOG("ATN !!\n");
+        LOG("ATN !!\r\n");
 
 
       // bug avant cette ligne
@@ -285,16 +286,16 @@ int main(void) {
       TMSG(GPIO_PIN_SET);
       LOG("message in (%x) ...", 0);
       writeHandshake(0);
-      LOG(" ok\n");
+      LOG(" ok\r\n");
       if (!RATN())
-        LOG("ATN !!\n");
+        LOG("ATN !!\r\n");
 
       TCD(GPIO_PIN_RESET);
       TIO(GPIO_PIN_RESET);
       TMSG(GPIO_PIN_RESET);
       TBSY(GPIO_PIN_RESET);
 
-      LOG("BUS FREE\n");
+      LOG("BUS FREE\r\n");
     }
 
 

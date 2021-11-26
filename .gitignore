@@ -37,3 +37,8 @@
 build
 Debug
 cmake-build-debug
+68net.bin
+68net.cbp
+68net.map
+cmake_install.cmake
+CmakeFiles/
