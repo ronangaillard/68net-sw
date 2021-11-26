@@ -8,5 +8,6 @@
 #include <stdarg.h>
 
 void LOG(const char *format, ...);
+void LOG_INT(const char* buffer);
 
 #endif //INC_68NET_HELPERS_H

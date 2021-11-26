@@ -51,9 +51,7 @@ SPI_HandleTypeDef hspi2;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-
 static void MX_GPIO_Init(void);
-
 static void MX_SPI2_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -82,7 +80,8 @@ const char arpreqhdr[] = {0, 1, 8, 0, 6, 4, 0, 1};
   * @brief  The application entry point.
   * @retval int
   */
-int main(void) {
+int main(void)
+{
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -191,7 +190,7 @@ int main(void) {
     HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
 //    while (1);
     while (RSEL() || RBSY() || !RRST()) {
-     int size = encPacketReceive(400, buf);
+    //  int size = encPacketReceive(400, buf);
      int size = 0;
      if (size != 0) {
        LOG("received packet of %d bytes\n", size);
@@ -202,101 +201,102 @@ int main(void) {
      }
     }
 
-    requestId = RDB0_GPIO_Port->IDR;
-    if ((~requestId & SCSI_ADDRESS) == SCSI_ADDRESS) {
-      HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
-      TBSY(GPIO_PIN_SET);
-      // Wait for SEL inactive
-      LOG("SELECTED\r\n");
-      while (!RSEL());
+//     requestId = RDB0_GPIO_Port->IDR;
+//     if ((~requestId & SCSI_ADDRESS) == SCSI_ADDRESS) {
+//       HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
+//       TBSY(GPIO_PIN_SET);
+//       // Wait for SEL inactive
+//       LOG("SELECTED\r\n");
+//       while (!RSEL());
 
-      if (!RATN()) {
-        LOG("ATN !!\r\n");
-        // Message out
-        uint8_t message;
-        TCD(GPIO_PIN_SET); // Data out (initiator to target)
-        TMSG(GPIO_PIN_SET);
-        message = readHandshake();
-        LOG("MESSAGE : 0x%02X\n", message & 0xff);
-
-
-        TCD(GPIO_PIN_SET); // Data out (initiator to target)
-        while (!RATN());
-
-        TMSG(GPIO_PIN_RESET);
-        TBSY(GPIO_PIN_RESET);
-      }
-
-      TCD(GPIO_PIN_SET);
-
-      uint8_t cmd[12];
-
-      cmd[0] = readHandshake();
-      cmd[1] = readHandshake();
-      cmd[2] = readHandshake();
-      cmd[3] = readHandshake();
-      cmd[4] = readHandshake();
-      cmd[5] = readHandshake();
-
-      static const int cmd_class_len[8] = {6, 10, 10, 6, 6, 12, 6, 6};
-      int len = cmd_class_len[cmd[0] >> 5u];
-
-      for (int i = 6; i < len; i++) {
-        cmd[i] = readHandshake();
-      }
-
-      sprintf(buffer, "CMD : 0x%02X\r\n", cmd[0]);
-      LOG(buffer);
-
-// Bug après cette ligne
-// sur de sur
-      switch (cmd[0]) {
-        case 0x12:
-          LOG("[Inquiry]\r\n");
-          status = onInquiryCommand(cmd);
-          break;
-        case 0x09: // "Set Filter"
-          LOG("[Set Filter]\r\n");
-          onSetFilter(cmd);
-          break;
-        case 0x0C: // "Medium Sense"
-          LOG("[Medium Sense]\r\n");
-          break;
-        case 0x05: // "Send Packet"
-          LOG("[Send Packet]\r\n");
-          onSendPacket(cmd);
-          break;
-        default:
-          LOG("UNDEFINED CMD\r\n");
-      }
-//      while (1);
-//      HAL_Delay(500);
-      // Status
-      TIO(GPIO_PIN_SET);
-      TCD(GPIO_PIN_SET);
-      LOG("status (%x) ...", status);
-      writeHandshake(status);
-      LOG(" ok\r\n");
-      if (!RATN())
-        LOG("ATN !!\r\n");
+//       if (!RATN()) {
+//         LOG("ATN !!\r\n");
+//         // Message out
+//         uint8_t message;
+//         TCD(GPIO_PIN_SET); // Data out (initiator to target)
+//         TMSG(GPIO_PIN_SET);
+//         message = readHandshake();
+//         LOG("MESSAGE : 0x%02X\n", message & 0xff);
 
 
-      // bug avant cette ligne
-      // Message In
-      TMSG(GPIO_PIN_SET);
-      LOG("message in (%x) ...", 0);
-      writeHandshake(0);
-      LOG(" ok\r\n");
-      if (!RATN())
-        LOG("ATN !!\r\n");
+//         TCD(GPIO_PIN_SET); // Data out (initiator to target)
+//         while (!RATN());
 
-      TCD(GPIO_PIN_RESET);
-      TIO(GPIO_PIN_RESET);
-      TMSG(GPIO_PIN_RESET);
-      TBSY(GPIO_PIN_RESET);
+//         TMSG(GPIO_PIN_RESET);
+//         TBSY(GPIO_PIN_RESET);
+//       }
 
-      LOG("BUS FREE\r\n");
-    }
+//       TCD(GPIO_PIN_SET);
+
+//       uint8_t cmd[12];
+
+//       cmd[0] = readHandshake();
+//       cmd[1] = readHandshake();
+//       cmd[2] = readHandshake();
+//       cmd[3] = readHandshake();
+//       cmd[4] = readHandshake();
+//       cmd[5] = readHandshake();
+
+//       static const int cmd_class_len[8] = {6, 10, 10, 6, 6, 12, 6, 6};
+//       int len = cmd_class_len[cmd[0] >> 5u];
+
+//       for (int i = 6; i < len; i++) {
+//         cmd[i] = readHandshake();
+//       }
+
+//       sprintf(buffer, "CMD : 0x%02X\r\n", cmd[0]);
+//       LOG(buffer);
+
+// // Bug après cette ligne
+// // sur de sur
+//       switch (cmd[0]) {
+//         case 0x12:
+//           LOG("[Inquiry]\r\n");
+//           status = onInquiryCommand(cmd);
+//           break;
+//         case 0x09: // "Set Filter"
+//           LOG("[Set Filter]\r\n");
+//           onSetFilter(cmd);
+//           break;
+//         case 0x0C: // "Medium Sense"
+//           LOG("[Medium Sense]\r\n");
+//           break;
+//         case 0x05: // "Send Packet"
+//           LOG("[Send Packet]\r\n");
+//           onSendPacket(cmd);
+//           break;
+//         default:
+//           LOG("UNDEFINED CMD\r\n");
+//       }
+// //      while (1);
+// //      HAL_Delay(500);
+//       // Status
+//       TIO(GPIO_PIN_SET);
+//       TCD(GPIO_PIN_SET);
+//       LOG("status (%x) ...", status);
+//       writeHandshake(status);
+//       LOG(" ok\r\n");
+//       if (!RATN())
+//         LOG("ATN !!\r\n");
+
+
+//       // bug avant cette ligne
+//       // Message In
+//       TMSG(GPIO_PIN_SET);
+//       LOG("message in (%x) ...", 0);
+//       writeHandshake(0);
+//       LOG(" ok\r\n");
+//       if (!RATN())
+//         LOG("ATN !!\r\n");
+
+//       TCD(GPIO_PIN_RESET);
+//       TIO(GPIO_PIN_RESET);
+//       TMSG(GPIO_PIN_RESET);
+//       TBSY(GPIO_PIN_RESET);
+
+//       LOG("BUS FREE\r\n");
+    // }
+
 
 
   }
@@ -308,7 +308,8 @@ int main(void) {
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void) {
+void SystemClock_Config(void)
+{
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
@@ -327,24 +328,27 @@ void SystemClock_Config(void) {
   RCC_OscInitStruct.PLL2.PLL2State = RCC_PLL2_ON;
   RCC_OscInitStruct.PLL2.PLL2MUL = RCC_PLL2_MUL8;
   RCC_OscInitStruct.PLL2.HSEPrediv2Value = RCC_HSE_PREDIV2_DIV5;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
     Error_Handler();
   }
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-                                | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
   PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV3;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
     Error_Handler();
   }
   /** Configure the Systick interrupt time
@@ -357,7 +361,8 @@ void SystemClock_Config(void) {
   * @param None
   * @retval None
   */
-static void MX_SPI2_Init(void) {
+static void MX_SPI2_Init(void)
+{
 
   /* USER CODE BEGIN SPI2_Init 0 */
 
@@ -379,7 +384,8 @@ static void MX_SPI2_Init(void) {
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi2.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi2) != HAL_OK) {
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
     Error_Handler();
   }
   /* USER CODE BEGIN SPI2_Init 2 */
@@ -393,7 +399,8 @@ static void MX_SPI2_Init(void) {
   * @param None
   * @retval None
   */
-static void MX_GPIO_Init(void) {
+static void MX_GPIO_Init(void)
+{
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
@@ -403,38 +410,38 @@ static void MX_GPIO_Init(void) {
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, STATUS_LED_Pin | TDBP_Pin | TSEL_Pin | TBSY_Pin
-                           | TCD_Pin | TMSG_Pin | TREQ_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, STATUS_LED_Pin|TDBP_Pin|TSEL_Pin|TBSY_Pin
+                          |TCD_Pin|TMSG_Pin|TREQ_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, TDB0_Pin | TDB1_Pin | TDB2_Pin | GPIO_PIN_12
-                           | TDB3_Pin | TDB4_Pin | TDB5_Pin | TDB6_Pin
-                           | TDB7_Pin | SPI_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, TDB0_Pin|TDB1_Pin|TDB2_Pin|GPIO_PIN_12
+                          |TDB3_Pin|TDB4_Pin|TDB5_Pin|TDB6_Pin
+                          |TDB7_Pin|SPI_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(TIO_GPIO_Port, TIO_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : STATUS_LED_Pin TDBP_Pin TSEL_Pin TBSY_Pin
                            TCD_Pin TMSG_Pin TREQ_Pin */
-  GPIO_InitStruct.Pin = STATUS_LED_Pin | TDBP_Pin | TSEL_Pin | TBSY_Pin
-                        | TCD_Pin | TMSG_Pin | TREQ_Pin;
+  GPIO_InitStruct.Pin = STATUS_LED_Pin|TDBP_Pin|TSEL_Pin|TBSY_Pin
+                          |TCD_Pin|TMSG_Pin|TREQ_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RRST_Pin RBSY_Pin RDBP_Pin */
-  GPIO_InitStruct.Pin = RRST_Pin | RBSY_Pin | RDBP_Pin;
+  GPIO_InitStruct.Pin = RRST_Pin|RBSY_Pin|RDBP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RDB0_Pin RDB1_Pin RDB2_Pin RDB3_Pin
                            RDB4_Pin RDB5_Pin RDB6_Pin RDB7_Pin
-                           RSEL_Pin PA9 RACK_Pin RATN_Pin */
-  GPIO_InitStruct.Pin = RDB0_Pin | RDB1_Pin | RDB2_Pin | RDB3_Pin
-                        | RDB4_Pin | RDB5_Pin | RDB6_Pin | RDB7_Pin
-                        | RSEL_Pin | GPIO_PIN_9 | RACK_Pin | RATN_Pin;
+                           PA9 RACK_Pin RATN_Pin */
+  GPIO_InitStruct.Pin = RDB0_Pin|RDB1_Pin|RDB2_Pin|RDB3_Pin
+                          |RDB4_Pin|RDB5_Pin|RDB6_Pin|RDB7_Pin
+                          |GPIO_PIN_9|RACK_Pin|RATN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -442,13 +449,19 @@ static void MX_GPIO_Init(void) {
   /*Configure GPIO pins : TDB0_Pin TDB1_Pin TDB2_Pin PB12
                            TDB3_Pin TDB4_Pin TDB5_Pin TDB6_Pin
                            TDB7_Pin SPI_RST_Pin */
-  GPIO_InitStruct.Pin = TDB0_Pin | TDB1_Pin | TDB2_Pin | GPIO_PIN_12
-                        | TDB3_Pin | TDB4_Pin | TDB5_Pin | TDB6_Pin
-                        | TDB7_Pin | SPI_RST_Pin;
+  GPIO_InitStruct.Pin = TDB0_Pin|TDB1_Pin|TDB2_Pin|GPIO_PIN_12
+                          |TDB3_Pin|TDB4_Pin|TDB5_Pin|TDB6_Pin
+                          |TDB7_Pin|SPI_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RSEL_Pin */
+  GPIO_InitStruct.Pin = RSEL_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(RSEL_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : TIO_Pin */
   GPIO_InitStruct.Pin = TIO_Pin;
@@ -463,6 +476,10 @@ static void MX_GPIO_Init(void) {
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SPI_INT_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -473,7 +490,8 @@ static void MX_GPIO_Init(void) {
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-void Error_Handler(void) {
+void Error_Handler(void)
+{
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
 

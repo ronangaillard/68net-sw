@@ -17,3 +17,6 @@ void LOG(const char *format, ...) {
   va_end(args);
 }
 
+void LOG_INT(const char* buffer) {
+   while (CDC_Transmit_FS((uint8_t *) buffer, strlen(buffer)) != HAL_OK);
+}
