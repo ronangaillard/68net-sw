@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                             www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under Ultimate Liberty license
+ * SLA0044, the "License"; You may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at:
+ *                             www.st.com/SLA0044
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -46,7 +46,11 @@
 SPI_HandleTypeDef hspi2;
 
 /* USER CODE BEGIN PV */
-
+volatile uint8_t scsi_selected = 0;
+volatile uint8_t scsi_selected_address = 0;
+volatile uint8_t log_please = 0;
+volatile uint8_t rsel_log = 0;
+volatile uint8_t rbsy_log = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -60,26 +64,27 @@ static void MX_SPI2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void fill_buf_p(uint8_t *buf, uint16_t len, const char *s) {
+void fill_buf_p(uint8_t *buf, uint16_t len, const char *s)
+{
   // fill in tcp data at position pos
   //
   // with no options the data starts after the checksum + 2 more bytes (urgent ptr)
-  while (len) {
+  while (len)
+  {
     *buf = *s;
     buf++;
     s++;
     len--;
   }
-
 }
 
 const char arpreqhdr[] = {0, 1, 8, 0, 6, 4, 0, 1};
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -146,10 +151,11 @@ int main(void)
   uint8_t macaddr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
   uint8_t ip_we_search[] = {192, 168, 17, 1};
   uint8_t ipaddr[] = {192, 168, 17, 17};
-//    encSendPacket(arp, 60);
+  //    encSendPacket(arp, 60);
   uint8_t i = 0;
   //
-  while (i < 6) {
+  while (i < 6)
+  {
     buf[ETH_DST_MAC + i] = 0xff;
     buf[ETH_SRC_MAC + i] = macaddr[i];
     i++;
@@ -158,156 +164,182 @@ int main(void)
   buf[ETH_TYPE_L_P] = ETHTYPE_ARP_L_V;
   fill_buf_p(&buf[ETH_ARP_P], 8, arpreqhdr);
   i = 0;
-  while (i < 6) {
+  while (i < 6)
+  {
     buf[ETH_ARP_SRC_MAC_P + i] = macaddr[i];
     buf[ETH_ARP_DST_MAC_P + i] = 0;
     i++;
   }
   i = 0;
-  while (i < 4) {
+  while (i < 4)
+  {
     buf[ETH_ARP_DST_IP_P + i] = *(ip_we_search + i);
     buf[ETH_ARP_SRC_IP_P + i] = ipaddr[i];
     i++;
   }
 
   // 0x2a=42=len of packet
-  //encSendPacket(buf, 0x2a);
-  //LOG("sent\r\n");
-//  while (1) {
-////    encSendPacket(arp, 60);
-
+  // encSendPacket(buf, 0x2a);
+  // LOG("sent\r\n");
+  //  while (1) {
+  ////    encSendPacket(arp, 60);
 
   // 0x2a=42=len of packet
-//  encSendPacket(buf, 42);
-//  }
+  //  encSendPacket(buf, 42);
+  //  }
 
-  while (1) {
+  while (1)
+  {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
     // Wait for reset
     status = 0;
-    HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
-//    while (1);
-    while (RSEL() || RBSY() || !RRST()) {
-    //  int size = encPacketReceive(400, buf);
-     int size = 0;
-     if (size != 0) {
-       LOG("received packet of %d bytes\n", size);
-       for (int k = 0; k < size; k++)
-         LOG("%02X ", buf[k]);
 
-       LOG("\r\n");
-     }
+    if (scsi_selected)
+    {
+      LOG("SELECTED !!!%d \r\n", scsi_selected_address);
+      scsi_selected = 0;
+
+      if (rsel_log == GPIO_PIN_SET)
+      {
+        LOG_INT("RSEL = 1");
+      }
+      else
+      {
+        LOG_INT("RSEL = 0");
+      }
+      LOG_INT("\r\n");
+
+      if (rbsy_log == GPIO_PIN_SET)
+      {
+        LOG_INT("RBSY = 1");
+      }
+      else
+      {
+        LOG_INT("RBSY = 0");
+      }
+      LOG_INT("\r\n");
+
+      HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
     }
+    HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+    // HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+    //    while (1);
+    // while (RSEL() || RBSY() || !RRST()) {
+    // //  int size = encPacketReceive(400, buf);
+    //  int size = 0;
+    //  if (size != 0) {
+    //    LOG("received packet of %d bytes\n", size);
+    //    for (int k = 0; k < size; k++)
+    //      LOG("%02X ", buf[k]);
 
-//     requestId = RDB0_GPIO_Port->IDR;
-//     if ((~requestId & SCSI_ADDRESS) == SCSI_ADDRESS) {
-//       HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
-//       TBSY(GPIO_PIN_SET);
-//       // Wait for SEL inactive
-//       LOG("SELECTED\r\n");
-//       while (!RSEL());
-
-//       if (!RATN()) {
-//         LOG("ATN !!\r\n");
-//         // Message out
-//         uint8_t message;
-//         TCD(GPIO_PIN_SET); // Data out (initiator to target)
-//         TMSG(GPIO_PIN_SET);
-//         message = readHandshake();
-//         LOG("MESSAGE : 0x%02X\n", message & 0xff);
-
-
-//         TCD(GPIO_PIN_SET); // Data out (initiator to target)
-//         while (!RATN());
-
-//         TMSG(GPIO_PIN_RESET);
-//         TBSY(GPIO_PIN_RESET);
-//       }
-
-//       TCD(GPIO_PIN_SET);
-
-//       uint8_t cmd[12];
-
-//       cmd[0] = readHandshake();
-//       cmd[1] = readHandshake();
-//       cmd[2] = readHandshake();
-//       cmd[3] = readHandshake();
-//       cmd[4] = readHandshake();
-//       cmd[5] = readHandshake();
-
-//       static const int cmd_class_len[8] = {6, 10, 10, 6, 6, 12, 6, 6};
-//       int len = cmd_class_len[cmd[0] >> 5u];
-
-//       for (int i = 6; i < len; i++) {
-//         cmd[i] = readHandshake();
-//       }
-
-//       sprintf(buffer, "CMD : 0x%02X\r\n", cmd[0]);
-//       LOG(buffer);
-
-// // Bug après cette ligne
-// // sur de sur
-//       switch (cmd[0]) {
-//         case 0x12:
-//           LOG("[Inquiry]\r\n");
-//           status = onInquiryCommand(cmd);
-//           break;
-//         case 0x09: // "Set Filter"
-//           LOG("[Set Filter]\r\n");
-//           onSetFilter(cmd);
-//           break;
-//         case 0x0C: // "Medium Sense"
-//           LOG("[Medium Sense]\r\n");
-//           break;
-//         case 0x05: // "Send Packet"
-//           LOG("[Send Packet]\r\n");
-//           onSendPacket(cmd);
-//           break;
-//         default:
-//           LOG("UNDEFINED CMD\r\n");
-//       }
-// //      while (1);
-// //      HAL_Delay(500);
-//       // Status
-//       TIO(GPIO_PIN_SET);
-//       TCD(GPIO_PIN_SET);
-//       LOG("status (%x) ...", status);
-//       writeHandshake(status);
-//       LOG(" ok\r\n");
-//       if (!RATN())
-//         LOG("ATN !!\r\n");
-
-
-//       // bug avant cette ligne
-//       // Message In
-//       TMSG(GPIO_PIN_SET);
-//       LOG("message in (%x) ...", 0);
-//       writeHandshake(0);
-//       LOG(" ok\r\n");
-//       if (!RATN())
-//         LOG("ATN !!\r\n");
-
-//       TCD(GPIO_PIN_RESET);
-//       TIO(GPIO_PIN_RESET);
-//       TMSG(GPIO_PIN_RESET);
-//       TBSY(GPIO_PIN_RESET);
-
-//       LOG("BUS FREE\r\n");
+    //    LOG("\r\n");
+    //  }
     // }
 
+    //     requestId = RDB0_GPIO_Port->IDR;
+    //     if ((~requestId & SCSI_ADDRESS) == SCSI_ADDRESS) {
+    //       HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
+    //       TBSY(GPIO_PIN_SET);
+    //       // Wait for SEL inactive
+    //       LOG("SELECTED\r\n");
+    //       while (!RSEL());
 
+    //       if (!RATN()) {
+    //         LOG("ATN !!\r\n");
+    //         // Message out
+    //         uint8_t message;
+    //         TCD(GPIO_PIN_SET); // Data out (initiator to target)
+    //         TMSG(GPIO_PIN_SET);
+    //         message = readHandshake();
+    //         LOG("MESSAGE : 0x%02X\n", message & 0xff);
 
+    //         TCD(GPIO_PIN_SET); // Data out (initiator to target)
+    //         while (!RATN());
+
+    //         TMSG(GPIO_PIN_RESET);
+    //         TBSY(GPIO_PIN_RESET);
+    //       }
+
+    //       TCD(GPIO_PIN_SET);
+
+    //       uint8_t cmd[12];
+
+    //       cmd[0] = readHandshake();
+    //       cmd[1] = readHandshake();
+    //       cmd[2] = readHandshake();
+    //       cmd[3] = readHandshake();
+    //       cmd[4] = readHandshake();
+    //       cmd[5] = readHandshake();
+
+    //       static const int cmd_class_len[8] = {6, 10, 10, 6, 6, 12, 6, 6};
+    //       int len = cmd_class_len[cmd[0] >> 5u];
+
+    //       for (int i = 6; i < len; i++) {
+    //         cmd[i] = readHandshake();
+    //       }
+
+    //       sprintf(buffer, "CMD : 0x%02X\r\n", cmd[0]);
+    //       LOG(buffer);
+
+    // // Bug après cette ligne
+    // // sur de sur
+    //       switch (cmd[0]) {
+    //         case 0x12:
+    //           LOG("[Inquiry]\r\n");
+    //           status = onInquiryCommand(cmd);
+    //           break;
+    //         case 0x09: // "Set Filter"
+    //           LOG("[Set Filter]\r\n");
+    //           onSetFilter(cmd);
+    //           break;
+    //         case 0x0C: // "Medium Sense"
+    //           LOG("[Medium Sense]\r\n");
+    //           break;
+    //         case 0x05: // "Send Packet"
+    //           LOG("[Send Packet]\r\n");
+    //           onSendPacket(cmd);
+    //           break;
+    //         default:
+    //           LOG("UNDEFINED CMD\r\n");
+    //       }
+    // //      while (1);
+    // //      HAL_Delay(500);
+    //       // Status
+    //       TIO(GPIO_PIN_SET);
+    //       TCD(GPIO_PIN_SET);
+    //       LOG("status (%x) ...", status);
+    //       writeHandshake(status);
+    //       LOG(" ok\r\n");
+    //       if (!RATN())
+    //         LOG("ATN !!\r\n");
+
+    //       // bug avant cette ligne
+    //       // Message In
+    //       TMSG(GPIO_PIN_SET);
+    //       LOG("message in (%x) ...", 0);
+    //       writeHandshake(0);
+    //       LOG(" ok\r\n");
+    //       if (!RATN())
+    //         LOG("ATN !!\r\n");
+
+    //       TCD(GPIO_PIN_RESET);
+    //       TIO(GPIO_PIN_RESET);
+    //       TMSG(GPIO_PIN_RESET);
+    //       TBSY(GPIO_PIN_RESET);
+
+    //       LOG("BUS FREE\r\n");
+    // }
   }
 #pragma clang diagnostic pop
   /* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -315,8 +347,8 @@ void SystemClock_Config(void)
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
+   * in the RCC_OscInitTypeDef structure.
+   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV5;
@@ -333,9 +365,8 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -352,15 +383,15 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   /** Configure the Systick interrupt time
-  */
+   */
   __HAL_RCC_PLLI2S_ENABLE();
 }
 
 /**
-  * @brief SPI2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief SPI2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_SPI2_Init(void)
 {
 
@@ -391,14 +422,13 @@ static void MX_SPI2_Init(void)
   /* USER CODE BEGIN SPI2_Init 2 */
 
   /* USER CODE END SPI2_Init 2 */
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -410,38 +440,32 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, STATUS_LED_Pin|TDBP_Pin|TSEL_Pin|TBSY_Pin
-                          |TCD_Pin|TMSG_Pin|TREQ_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, STATUS_LED_Pin | TDBP_Pin | TSEL_Pin | TBSY_Pin | TCD_Pin | TMSG_Pin | TREQ_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, TDB0_Pin|TDB1_Pin|TDB2_Pin|GPIO_PIN_12
-                          |TDB3_Pin|TDB4_Pin|TDB5_Pin|TDB6_Pin
-                          |TDB7_Pin|SPI_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, TDB0_Pin | TDB1_Pin | TDB2_Pin | GPIO_PIN_12 | TDB3_Pin | TDB4_Pin | TDB5_Pin | TDB6_Pin | TDB7_Pin | SPI_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(TIO_GPIO_Port, TIO_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : STATUS_LED_Pin TDBP_Pin TSEL_Pin TBSY_Pin
                            TCD_Pin TMSG_Pin TREQ_Pin */
-  GPIO_InitStruct.Pin = STATUS_LED_Pin|TDBP_Pin|TSEL_Pin|TBSY_Pin
-                          |TCD_Pin|TMSG_Pin|TREQ_Pin;
+  GPIO_InitStruct.Pin = STATUS_LED_Pin | TDBP_Pin | TSEL_Pin | TBSY_Pin | TCD_Pin | TMSG_Pin | TREQ_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RRST_Pin RBSY_Pin RDBP_Pin */
-  GPIO_InitStruct.Pin = RRST_Pin|RBSY_Pin|RDBP_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : RRST_Pin RBSY_Pin */
+  GPIO_InitStruct.Pin = RRST_Pin | RBSY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RDB0_Pin RDB1_Pin RDB2_Pin RDB3_Pin
                            RDB4_Pin RDB5_Pin RDB6_Pin RDB7_Pin
                            PA9 RACK_Pin RATN_Pin */
-  GPIO_InitStruct.Pin = RDB0_Pin|RDB1_Pin|RDB2_Pin|RDB3_Pin
-                          |RDB4_Pin|RDB5_Pin|RDB6_Pin|RDB7_Pin
-                          |GPIO_PIN_9|RACK_Pin|RATN_Pin;
+  GPIO_InitStruct.Pin = RDB0_Pin | RDB1_Pin | RDB2_Pin | RDB3_Pin | RDB4_Pin | RDB5_Pin | RDB6_Pin | RDB7_Pin | GPIO_PIN_9 | RACK_Pin | RATN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -449,13 +473,17 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : TDB0_Pin TDB1_Pin TDB2_Pin PB12
                            TDB3_Pin TDB4_Pin TDB5_Pin TDB6_Pin
                            TDB7_Pin SPI_RST_Pin */
-  GPIO_InitStruct.Pin = TDB0_Pin|TDB1_Pin|TDB2_Pin|GPIO_PIN_12
-                          |TDB3_Pin|TDB4_Pin|TDB5_Pin|TDB6_Pin
-                          |TDB7_Pin|SPI_RST_Pin;
+  GPIO_InitStruct.Pin = TDB0_Pin | TDB1_Pin | TDB2_Pin | GPIO_PIN_12 | TDB3_Pin | TDB4_Pin | TDB5_Pin | TDB6_Pin | TDB7_Pin | SPI_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RDBP_Pin */
+  GPIO_InitStruct.Pin = RDBP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(RDBP_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : RSEL_Pin */
   GPIO_InitStruct.Pin = RSEL_Pin;
@@ -477,9 +505,14 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(SPI_INT_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-
 }
 
 /* USER CODE BEGIN 4 */
@@ -487,9 +520,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -498,14 +531,14 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
