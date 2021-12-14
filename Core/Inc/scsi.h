@@ -8,11 +8,11 @@
 #define SCSI_ADDRESS 1u << 5u
 #define MAXIMUM_TRANSFER_LENGTH 1522
 
-#define RRST() !HAL_GPIO_ReadPin(RRST_GPIO_Port, RRST_Pin)
-#define RBSY() !HAL_GPIO_ReadPin(RBSY_GPIO_Port, RBSY_Pin)
-#define RSEL() !HAL_GPIO_ReadPin(RSEL_GPIO_Port, RSEL_Pin)
-#define RATN() !HAL_GPIO_ReadPin(RATN_GPIO_Port, RATN_Pin)
-#define RACK() !HAL_GPIO_ReadPin(RACK_GPIO_Port, RACK_Pin)
+#define RRST() HAL_GPIO_ReadPin(RRST_GPIO_Port, RRST_Pin)
+#define RBSY() HAL_GPIO_ReadPin(RBSY_GPIO_Port, RBSY_Pin)
+#define RSEL() HAL_GPIO_ReadPin(RSEL_GPIO_Port, RSEL_Pin)
+#define RATN() HAL_GPIO_ReadPin(RATN_GPIO_Port, RATN_Pin)
+#define RACK() HAL_GPIO_ReadPin(RACK_GPIO_Port, RACK_Pin)
 
 #define TBSY(status) HAL_GPIO_WritePin(TBSY_GPIO_Port, TBSY_Pin, status)
 #define TCD(status) HAL_GPIO_WritePin(TCD_GPIO_Port, TCD_Pin, status)

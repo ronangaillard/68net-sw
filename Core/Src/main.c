@@ -198,32 +198,91 @@ int main(void)
 
     if (scsi_selected)
     {
-      LOG("SELECTED !!!%d \r\n", scsi_selected_address);
+      LOG("SELECTED:");
+
+      while (RSEL())
+        ;
+
+      LOG(" ok\r\n");
+
+      if (RATN())
+      {
+        LOG("ATN !!\r\n");
+        // Message out
+        uint8_t message;
+        TCD(GPIO_PIN_SET); // Data out (initiator to target)
+        TMSG(GPIO_PIN_SET);
+        message = readHandshake();
+        LOG("MESSAGE : 0x%02X\n", message & 0xff);
+
+        TCD(GPIO_PIN_SET); // Data out (initiator to target)
+        while (RATN())
+          ;
+
+        TMSG(GPIO_PIN_RESET);
+        TBSY(GPIO_PIN_RESET);
+      }
+
+      TCD(GPIO_PIN_SET);
+
+      uint8_t cmd[12];
+
+      cmd[0] = readHandshake();
+      cmd[1] = readHandshake();
+      cmd[2] = readHandshake();
+      cmd[3] = readHandshake();
+      cmd[4] = readHandshake();
+      cmd[5] = readHandshake();
+
+      static const int cmd_class_len[8] = {6, 10, 10, 6, 6, 12, 6, 6};
+      int len = cmd_class_len[cmd[0] >> 5u];
+
+      for (int i = 6; i < len; i++)
+      {
+        cmd[i] = readHandshake();
+      }
+
+      sprintf(buffer, "CMD : 0x%02X\r\n", cmd[0]);
+      LOG(buffer);
+
+      switch (cmd[0])
+      {
+      case 0x12:
+        LOG("[Inquiry]\r\n");
+        status = onInquiryCommand(cmd);
+        break;
+      default:
+        LOG("UNDEFINED CMD\r\n");
+      }
+
+      // Status
+      TIO(GPIO_PIN_SET);
+      TCD(GPIO_PIN_SET);
+      LOG("status (%x) ...", status);
+      writeHandshake(status);
+      LOG(" ok\r\n");
+      if (RATN())
+        LOG("ATN !!\r\n");
+
+      // bug avant cette ligne
+      // Message In
+      TMSG(GPIO_PIN_SET);
+      LOG("message in (%x) ...", 0);
+      writeHandshake(0);
+      LOG(" ok\r\n");
+      if (RATN())
+        LOG("ATN !!\r\n");
+
+      TCD(GPIO_PIN_RESET);
+      TIO(GPIO_PIN_RESET);
+      TMSG(GPIO_PIN_RESET);
+      TBSY(GPIO_PIN_RESET);
+
+      LOG("BUS FREE\r\n");
       scsi_selected = 0;
-
-      if (rsel_log == GPIO_PIN_SET)
-      {
-        LOG_INT("RSEL = 1");
-      }
-      else
-      {
-        LOG_INT("RSEL = 0");
-      }
-      LOG_INT("\r\n");
-
-      if (rbsy_log == GPIO_PIN_SET)
-      {
-        LOG_INT("RBSY = 1");
-      }
-      else
-      {
-        LOG_INT("RBSY = 0");
-      }
-      LOG_INT("\r\n");
 
       HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
     }
-    HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
     // HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
     //    while (1);
     // while (RSEL() || RBSY() || !RRST()) {
@@ -456,11 +515,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RRST_Pin RBSY_Pin */
-  GPIO_InitStruct.Pin = RRST_Pin | RBSY_Pin;
+  /*Configure GPIO pin : RRST_Pin */
+  GPIO_InitStruct.Pin = RRST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(RRST_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RBSY_Pin */
+  GPIO_InitStruct.Pin = RBSY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(RBSY_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RDB0_Pin RDB1_Pin RDB2_Pin RDB3_Pin
                            RDB4_Pin RDB5_Pin RDB6_Pin RDB7_Pin
@@ -505,14 +570,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(SPI_INT_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-
   HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 }
 
 /* USER CODE BEGIN 4 */

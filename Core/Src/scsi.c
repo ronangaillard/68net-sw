@@ -28,10 +28,10 @@ int getParity(unsigned int n) {
 
 uint8_t readHandshake(void) {
   TREQ(GPIO_PIN_SET);
-  while (RACK());
+  while (!RACK());
   uint8_t r = readBus();
   TREQ(GPIO_PIN_RESET);
-  while (!RACK());
+  while (RACK());
   return r;
 }
 
@@ -46,9 +46,9 @@ void writeHandshake(uint8_t d) {
   }
 
   TREQ(GPIO_PIN_SET);
-  while (RACK());
-  TREQ(GPIO_PIN_RESET);
   while (!RACK());
+  TREQ(GPIO_PIN_RESET);
+  while (RACK());
 }
 
 void writeDataPhase(int len, const uint8_t *p) {
