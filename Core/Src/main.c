@@ -251,6 +251,17 @@ int main(void)
         LOG("[Inquiry]\r\n");
         status = onInquiryCommand(cmd);
         break;
+      case 0x09: // "Set Filter"
+        LOG("[Set Filter]\r\n");
+        onSetFilter(cmd);
+        break;
+      case 0x0C: // "Medium Sense"
+        LOG("[Medium Sense]\r\n");
+        break;
+      case 0x05: // "Send Packet"
+        LOG("[Send Packet]\r\n");
+        onSendPacket(cmd);
+        break;
       default:
         LOG("UNDEFINED CMD\r\n");
       }
