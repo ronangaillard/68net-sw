@@ -196,6 +196,29 @@ int main(void)
     // Wait for reset
     status = 0;
 
+    int size = encPacketReceive(400, buf);
+    if (size != 0)
+    {
+      LOG("received packet of %d bytes\n", size);
+      for (int k = 0; k < size; k++)
+        LOG("%02X ", buf[k]);
+
+      LOG("\r\n");
+
+      // if ((net_header.stath) & 3)
+      // {
+      //   // broadcast/multicast set
+      //   read_buffer[0] = 0x21;
+      // }
+      // else
+      // {
+      //   read_buffer[0] = 0x01;
+      // }
+      // read_buffer[1] = rx_packet_id++;
+      // read_buffer[2] = (uint8_t)(net_header.length);
+      // read_buffer[3] = (uint8_t)((net_header.length) >> 8);
+    }
+
     if (scsi_selected)
     {
       LOG("SELECTED:");
