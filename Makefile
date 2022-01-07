@@ -369,6 +369,30 @@ Core/Src/system_stm32f1xx.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/68net.elf.dir/build.make CMakeFiles/68net.elf.dir/Core/Src/system_stm32f1xx.c.s
 .PHONY : Core/Src/system_stm32f1xx.c.s
 
+Core/Src/timing.obj: Core/Src/timing.c.obj
+.PHONY : Core/Src/timing.obj
+
+# target to build an object file
+Core/Src/timing.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/68net.elf.dir/build.make CMakeFiles/68net.elf.dir/Core/Src/timing.c.obj
+.PHONY : Core/Src/timing.c.obj
+
+Core/Src/timing.i: Core/Src/timing.c.i
+.PHONY : Core/Src/timing.i
+
+# target to preprocess a source file
+Core/Src/timing.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/68net.elf.dir/build.make CMakeFiles/68net.elf.dir/Core/Src/timing.c.i
+.PHONY : Core/Src/timing.c.i
+
+Core/Src/timing.s: Core/Src/timing.c.s
+.PHONY : Core/Src/timing.s
+
+# target to generate assembly for a file
+Core/Src/timing.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/68net.elf.dir/build.make CMakeFiles/68net.elf.dir/Core/Src/timing.c.s
+.PHONY : Core/Src/timing.c.s
+
 Core/Startup/startup_stm32f105r8tx.obj: Core/Startup/startup_stm32f105r8tx.s.obj
 .PHONY : Core/Startup/startup_stm32f105r8tx.obj
 
@@ -1016,6 +1040,9 @@ help:
 	@echo "... Core/Src/system_stm32f1xx.obj"
 	@echo "... Core/Src/system_stm32f1xx.i"
 	@echo "... Core/Src/system_stm32f1xx.s"
+	@echo "... Core/Src/timing.obj"
+	@echo "... Core/Src/timing.i"
+	@echo "... Core/Src/timing.s"
 	@echo "... Core/Startup/startup_stm32f105r8tx.obj"
 	@echo "... Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.obj"
 	@echo "... Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.i"

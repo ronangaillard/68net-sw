@@ -47,10 +47,16 @@ SPI_HandleTypeDef hspi2;
 
 /* USER CODE BEGIN PV */
 volatile uint8_t scsi_selected = 0;
+volatile uint8_t scsi_re_selected = 0;
 volatile uint8_t scsi_selected_address = 0;
 volatile uint8_t log_please = 0;
 volatile uint8_t rsel_log = 0;
 volatile uint8_t rbsy_log = 0;
+volatile uint8_t packet_received = 0;
+
+volatile uint8_t ready_to_message_packets = 0;
+
+uint8_t packet_id = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -137,7 +143,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   uint8_t requestId;
-  char buffer[100];
+  char buffer[20];
   uint8_t status;
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
@@ -146,7 +152,8 @@ int main(void)
   uint8_t arp[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xE0, 0x4C, 0x6D, 0x11, 0x08, 0x08, 0x06, 0x00, 0x01, 0x08,
                    0x00, 0x06, 0x04, 0x00, 0x01, 0x00, 0xE0, 0x4C, 0x6D, 0x11, 0x08, 0xC0, 0xA8, 0x11, 0x02, 0x00, 0x00,
                    0x00, 0x00, 0x00, 0x00, 0xC0, 0xA8, 0x11, 0x01};
-  uint8_t buf[400];
+  uint8_t buf[MAX_PACKET_SIZE];
+  uint16_t buf_size = 0;
   GPIO_PinState ps = GPIO_PIN_RESET;
   uint8_t macaddr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
   uint8_t ip_we_search[] = {192, 168, 17, 1};
@@ -196,27 +203,12 @@ int main(void)
     // Wait for reset
     status = 0;
 
-    int size = encPacketReceive(400, buf);
+    uint16_t size = encPacketReceive(MAX_PACKET_SIZE, buf);
     if (size != 0)
     {
-      LOG("received packet of %d bytes\n", size);
-      for (int k = 0; k < size; k++)
-        LOG("%02X ", buf[k]);
-
-      LOG("\r\n");
-
-      // if ((net_header.stath) & 3)
-      // {
-      //   // broadcast/multicast set
-      //   read_buffer[0] = 0x21;
-      // }
-      // else
-      // {
-      //   read_buffer[0] = 0x01;
-      // }
-      // read_buffer[1] = rx_packet_id++;
-      // read_buffer[2] = (uint8_t)(net_header.length);
-      // read_buffer[3] = (uint8_t)((net_header.length) >> 8);
+      LOG("received packet of %hu bytes\r\n", size);
+      buf_size = size;
+      packet_received = 1;
     }
 
     if (scsi_selected)
@@ -273,6 +265,7 @@ int main(void)
       case 0x12:
         LOG("[Inquiry]\r\n");
         status = onInquiryCommand(cmd);
+        ready_to_message_packets = 1;
         break;
       case 0x09: // "Set Filter"
         LOG("[Set Filter]\r\n");
@@ -314,6 +307,114 @@ int main(void)
 
       LOG("BUS FREE\r\n");
       scsi_selected = 0;
+
+      TDB0_GPIO_Port->ODR &= 0xff00;
+      TCD(GPIO_PIN_RESET);
+      TIO(GPIO_PIN_RESET);
+      TMSG(GPIO_PIN_RESET);
+      TREQ(GPIO_PIN_RESET);
+      TDBP(GPIO_PIN_RESET);
+      TBSY(GPIO_PIN_RESET);
+
+      HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+    }
+
+    if (scsi_re_selected)
+    {
+      LOG("WON ARBITRATION AFTER RESELECTION for packet of size : %hu\r\n", buf_size);
+
+      LOG("MESSAGE OUT : ");
+
+      // message out
+      TCD(GPIO_PIN_SET);
+      TIO(GPIO_PIN_RESET);
+      TMSG(GPIO_PIN_SET);
+
+      uint8_t msg = readHandshake();
+      LOG("0x%x\r\n", msg);
+
+      if (msg == 0xC0)
+      {
+        LOG("BUS FREE after 0xC0\r\n");
+
+        TDB0_GPIO_Port->ODR &= 0xff00;
+        TCD(GPIO_PIN_RESET);
+        TIO(GPIO_PIN_RESET);
+        TMSG(GPIO_PIN_RESET);
+        TREQ(GPIO_PIN_RESET);
+        TDBP(GPIO_PIN_RESET);
+        TBSY(GPIO_PIN_RESET);
+
+        scsi_re_selected = 0;
+        HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+
+        continue;
+      }
+
+      LOG("DATA IN\r\n");
+
+      // transmit packet
+      // data in
+      TCD(GPIO_PIN_RESET);
+      TIO(GPIO_PIN_SET);
+      TMSG(GPIO_PIN_RESET);
+
+      // flag byte
+      writeHandshake(1);
+      LOG(".");
+
+      // id byte
+      writeHandshake(packet_id);
+      packet_id++;
+      LOG(".");
+
+      // packet size
+      writeHandshake(buf_size & 0xff);
+      LOG(".");
+      writeHandshake((buf_size >> 8) & 0xff);
+      LOG(".");
+
+      // packet
+      for (uint16_t i = 0; i < buf_size; i++)
+      {
+        writeHandshake(buf[i]);
+        LOG(".");
+      }
+      LOG("\r\n");
+
+      LOG("MESSAGE OUT : ");
+
+      // message out
+      TCD(GPIO_PIN_SET);
+      TIO(GPIO_PIN_RESET);
+      TMSG(GPIO_PIN_SET);
+
+      msg = readHandshake();
+      LOG("0x%x\r\n", msg);
+
+      LOG("MESSAGE IN\r\n");
+      // message in
+
+      TCD(GPIO_PIN_SET);
+      TIO(GPIO_PIN_SET);
+      TMSG(GPIO_PIN_SET);
+
+      // disconnect
+      writeHandshake(0x04);
+
+      LOG("BUS FREE\r\n");
+
+      TDB0_GPIO_Port->ODR &= 0xff00;
+      TCD(GPIO_PIN_RESET);
+      TIO(GPIO_PIN_RESET);
+      TMSG(GPIO_PIN_RESET);
+      TREQ(GPIO_PIN_RESET);
+      TDBP(GPIO_PIN_RESET);
+      TBSY(GPIO_PIN_RESET);
+
+      scsi_re_selected = 0;
+
+      packet_received = 0;
 
       HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
     }

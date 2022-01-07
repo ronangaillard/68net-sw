@@ -3,4 +3,36 @@
 
 void handle_scsi_com();
 
+#define WAIT()  \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop"); \
+    asm("nop");
+
 #endif

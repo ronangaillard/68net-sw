@@ -124,7 +124,7 @@ void Error_Handler(void);
 #define SPI_INT_Pin GPIO_PIN_9
 #define SPI_INT_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
-
+#define MAX_PACKET_SIZE 1512
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

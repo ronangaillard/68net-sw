@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include "enc.h"
 #include <stdlib.h>
+#include "scsi_protocol.h"
 
 // the selector for the TX buffer space
 static uint8_t txbuf;
@@ -27,6 +28,10 @@ int getParity(unsigned int n) {
 }
 
 uint8_t readHandshake(void) {
+  asm("nop");
+  asm("nop");
+  asm("nop");
+
   TREQ(GPIO_PIN_SET);
   while (!RACK());
   uint8_t r = readBus();
@@ -44,6 +49,10 @@ void writeHandshake(uint8_t d) {
   } else {
     TDBP(GPIO_PIN_RESET);
   }
+
+  asm("nop");
+  asm("nop");
+  asm("nop");
 
   TREQ(GPIO_PIN_SET);
   while (!RACK());
@@ -131,20 +140,20 @@ void onSendPacket(const uint8_t *cmd) {
 
   }
   LOG("\r\n");
-  LOG("packet received\r\n");
+  LOG("packet received to transmit via ethernet\r\n");
   int j = 0;
   uint8_t macaddr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
   while (j < 6) {
     packet[ETH_SRC_MAC + j] = macaddr[j];
     j++;
   }
-  LOG("modified packet : \r\n");
+  // LOG("modified packet : \r\n");
 
-  for (uint16_t i = 0; i < packetLength; i++) {
+  // for (uint16_t i = 0; i < packetLength; i++) {
 
-    LOG("%x, ", packet[i]);
+  //   LOG("%x, ", packet[i]);
 
-  }
+  // }
   LOG("\r\n");
 
   TCD(GPIO_PIN_SET);

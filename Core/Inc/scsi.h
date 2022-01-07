@@ -15,6 +15,7 @@
 #define RACK() HAL_GPIO_ReadPin(RACK_GPIO_Port, RACK_Pin)
 
 #define TBSY(status) HAL_GPIO_WritePin(TBSY_GPIO_Port, TBSY_Pin, status)
+#define TSEL(status) HAL_GPIO_WritePin(TSEL_GPIO_Port, TSEL_Pin, status)
 #define TCD(status) HAL_GPIO_WritePin(TCD_GPIO_Port, TCD_Pin, status)
 #define TIO(status) HAL_GPIO_WritePin(TIO_GPIO_Port, TIO_Pin, status)
 #define TREQ(status) HAL_GPIO_WritePin(TREQ_GPIO_Port, TREQ_Pin, status)
@@ -33,5 +34,6 @@ void onSetFilter(const uint8_t *cmd);
 
 void onSendPacket(const uint8_t *cmd);
 
+int getParity(unsigned int n);
 
 #endif //INC_68NET_SCSI_H

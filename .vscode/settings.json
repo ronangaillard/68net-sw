@@ -1,6 +1,8 @@
 {
     "files.associations": {
+        "*.ejs": "html",
         "main.h": "c",
-        "stm32f1xx_hal.h": "c"
+        "stm32f1xx_hal.h": "c",
+        "scsi.h": "c"
     }
 }
