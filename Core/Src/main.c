@@ -25,7 +25,9 @@
 /* USER CODE BEGIN Includes */
 #include "helpers.h"
 #include "scsi.h"
+#include "scsi_protocol.h"
 #include "enc.h"
+#include "timing.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -138,6 +140,95 @@ int main(void)
   HAL_GPIO_WritePin(TSEL_GPIO_Port, TSEL_Pin, GPIO_PIN_RESET);
 
   HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+  LOG("self test\r\n");
+  TBSY(GPIO_PIN_SET);
+  HAL_Delay(1);
+  if (RBSY())
+  {
+    LOG("BSY ok\r\n");
+  }
+  else
+  {
+    LOG("BSY NOK\r\n");
+  }
+
+  TBSY(GPIO_PIN_RESET);
+  HAL_Delay(1);
+  if (!RBSY())
+  {
+    LOG("BSY ok\r\n");
+  }
+  else
+  {
+    LOG("BSY NOK\r\n");
+  }
+
+  TSEL(GPIO_PIN_SET);
+  HAL_Delay(1);
+  if (RSEL())
+  {
+    LOG("SEL ok\r\n");
+  }
+  else
+  {
+    LOG("SEL NOK\r\n");
+  }
+
+  TSEL(GPIO_PIN_RESET);
+  HAL_Delay(1);
+  if (!RSEL())
+  {
+    LOG("SEL ok\r\n");
+  }
+  else
+  {
+    LOG("SEL NOK\r\n");
+  }
+
+  TDBP(GPIO_PIN_SET);
+  HAL_Delay(1);
+  if (RDBP())
+  {
+    LOG("DBP ok\r\n");
+  }
+  else
+  {
+    LOG("DBP NOK\r\n");
+  }
+
+  TDBP(GPIO_PIN_RESET);
+  HAL_Delay(1);
+  if (!RDBP())
+  {
+    LOG("DBP ok\r\n");
+  }
+  else
+  {
+    LOG("DBP NOK\r\n");
+  }
+
+  for (uint8_t i = 0; i < 8; i++)
+  {
+    uint8_t mask = 1 << i;
+
+    TDB0_GPIO_Port->ODR &= 0xff00;
+    TDB0_GPIO_Port->ODR |= mask;
+
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+
+    if ((~(RDB0_GPIO_Port->IDR) & 0xff) == mask)
+    {
+      LOG("bit %d ok\r\n", i);
+    }
+    else
+    {
+      LOG("bit %d NOK : %x\r\n", i, ~(RDB0_GPIO_Port->IDR) & 0xff);
+    }
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -333,9 +424,20 @@ int main(void)
       uint8_t msg = readHandshake();
       LOG("0x%x\r\n", msg);
 
-      if (msg == 0xC0)
+      // 0x08 is no operation
+      if (msg != 0x08)
       {
-        LOG("BUS FREE after 0xC0\r\n");
+        LOG("MESSAGE IN\r\n");
+        // message in
+
+        TCD(GPIO_PIN_SET);
+        TIO(GPIO_PIN_SET);
+        TMSG(GPIO_PIN_SET);
+
+        // disconnect
+        writeHandshake(0x04);
+
+        LOG("BUS FREE after %u\r\n", msg);
 
         TDB0_GPIO_Port->ODR &= 0xff00;
         TCD(GPIO_PIN_RESET);
@@ -382,15 +484,15 @@ int main(void)
       }
       LOG("\r\n");
 
-      LOG("MESSAGE OUT : ");
+      // LOG("MESSAGE OUT : ");
 
-      // message out
-      TCD(GPIO_PIN_SET);
-      TIO(GPIO_PIN_RESET);
-      TMSG(GPIO_PIN_SET);
+      // // message out
+      // TCD(GPIO_PIN_SET);
+      // TIO(GPIO_PIN_RESET);
+      // TMSG(GPIO_PIN_SET);
 
-      msg = readHandshake();
-      LOG("0x%x\r\n", msg);
+      // msg = readHandshake();
+      // LOG("0x%x\r\n", msg);
 
       LOG("MESSAGE IN\r\n");
       // message in

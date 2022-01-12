@@ -38,14 +38,13 @@ void handle_scsi_com()
         while (1)
         {
             // 72 is 1 us, we need at least 800 ns
-            if (stopwatch_getticks() >= 36000)
+            if (stopwatch_getticks() >= 200)
                 break;
 
             if (RBSY())
                 return;
         }
 
-        HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
         // arbitration
 
         TBSY(GPIO_PIN_SET);
@@ -79,6 +78,11 @@ void handle_scsi_com()
         {
             // won arbitration
             TSEL(GPIO_PIN_SET);
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            
 
             DWT->CYCCNT = 0;
 
@@ -109,8 +113,12 @@ void handle_scsi_com()
 
             TBSY(GPIO_PIN_RESET);
 
-            for(uint8_t i = 0; i < 250; i ++){
-                if(RBSY()){
+            WAIT();
+
+            for (uint8_t i = 0; i < 250; i++)
+            {
+                if (RBSY())
+                {
                     break;
                 }
             }
@@ -140,6 +148,8 @@ void handle_scsi_com()
 
             TDB0_GPIO_Port->ODR &= 0xff00;
             TIO(GPIO_PIN_RESET);
+
+            HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_RESET);
 
             scsi_re_selected = 1;
         }

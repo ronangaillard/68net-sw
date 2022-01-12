@@ -2,7 +2,6 @@
 #include "main.h"
 #include <stdint.h>
 
-#define DEMCR_TRCENA 0x01000000
 
 void stopwatch_reset(void)
 {

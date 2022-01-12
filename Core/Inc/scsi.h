@@ -13,6 +13,7 @@
 #define RSEL() HAL_GPIO_ReadPin(RSEL_GPIO_Port, RSEL_Pin)
 #define RATN() HAL_GPIO_ReadPin(RATN_GPIO_Port, RATN_Pin)
 #define RACK() HAL_GPIO_ReadPin(RACK_GPIO_Port, RACK_Pin)
+#define RDBP() HAL_GPIO_ReadPin(RDBP_GPIO_Port, RDBP_Pin)
 
 #define TBSY(status) HAL_GPIO_WritePin(TBSY_GPIO_Port, TBSY_Pin, status)
 #define TSEL(status) HAL_GPIO_WritePin(TSEL_GPIO_Port, TSEL_Pin, status)
