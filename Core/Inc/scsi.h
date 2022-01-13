@@ -25,6 +25,8 @@
 
 uint8_t readHandshake();
 
+uint8_t readHandshakeMessageOut(void);
+
 void writeHandshake(uint8_t d);
 
 void writeDataPhase(int len, const uint8_t *p);

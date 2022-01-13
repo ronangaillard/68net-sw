@@ -47,6 +47,8 @@
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi2;
 
+TIM_HandleTypeDef htim6;
+
 /* USER CODE BEGIN PV */
 volatile uint8_t scsi_selected = 0;
 volatile uint8_t scsi_re_selected = 0;
@@ -65,6 +67,7 @@ uint8_t packet_id = 0;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_TIM6_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -119,6 +122,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USB_DEVICE_Init();
   MX_SPI2_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
 
   // Init SCSI transmit pins
@@ -140,6 +144,7 @@ int main(void)
   HAL_GPIO_WritePin(TSEL_GPIO_Port, TSEL_Pin, GPIO_PIN_RESET);
 
   HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+
   LOG("self test\r\n");
   TBSY(GPIO_PIN_SET);
   HAL_Delay(1);
@@ -246,36 +251,9 @@ int main(void)
   uint8_t buf[MAX_PACKET_SIZE];
   uint16_t buf_size = 0;
   GPIO_PinState ps = GPIO_PIN_RESET;
-  uint8_t macaddr[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-  uint8_t ip_we_search[] = {192, 168, 17, 1};
-  uint8_t ipaddr[] = {192, 168, 17, 17};
-  //    encSendPacket(arp, 60);
-  uint8_t i = 0;
-  //
-  while (i < 6)
-  {
-    buf[ETH_DST_MAC + i] = 0xff;
-    buf[ETH_SRC_MAC + i] = macaddr[i];
-    i++;
-  }
-  buf[ETH_TYPE_H_P] = ETHTYPE_ARP_H_V;
-  buf[ETH_TYPE_L_P] = ETHTYPE_ARP_L_V;
-  fill_buf_p(&buf[ETH_ARP_P], 8, arpreqhdr);
-  i = 0;
-  while (i < 6)
-  {
-    buf[ETH_ARP_SRC_MAC_P + i] = macaddr[i];
-    buf[ETH_ARP_DST_MAC_P + i] = 0;
-    i++;
-  }
-  i = 0;
-  while (i < 4)
-  {
-    buf[ETH_ARP_DST_IP_P + i] = *(ip_we_search + i);
-    buf[ETH_ARP_SRC_IP_P + i] = ipaddr[i];
-    i++;
-  }
+  
 
+  stopwatch_reset();
   // 0x2a=42=len of packet
   // encSendPacket(buf, 0x2a);
   // LOG("sent\r\n");
@@ -293,13 +271,15 @@ int main(void)
     /* USER CODE BEGIN 3 */
     // Wait for reset
     status = 0;
-
-    uint16_t size = encPacketReceive(MAX_PACKET_SIZE, buf);
-    if (size != 0)
+    if (!packet_received)
     {
-      LOG("received packet of %hu bytes\r\n", size);
-      buf_size = size;
-      packet_received = 1;
+      uint16_t size = encPacketReceive(MAX_PACKET_SIZE, buf);
+      if (size != 0)
+      {
+        LOG("received packet of %hu bytes\r\n", size);
+        buf_size = size;
+        packet_received = 1;
+      }
     }
 
     if (scsi_selected)
@@ -318,7 +298,7 @@ int main(void)
         uint8_t message;
         TCD(GPIO_PIN_SET); // Data out (initiator to target)
         TMSG(GPIO_PIN_SET);
-        message = readHandshake();
+        message = readHandshakeMessageOut();
         LOG("MESSAGE : 0x%02X\n", message & 0xff);
 
         TCD(GPIO_PIN_SET); // Data out (initiator to target)
@@ -369,6 +349,12 @@ int main(void)
         LOG("[Send Packet]\r\n");
         onSendPacket(cmd);
         break;
+      case 0x08:
+        LOG("Read(6)\r\n");
+        break;
+      case 0x88:
+        LOG("Read(16)\r\n");
+        break;
       default:
         LOG("UNDEFINED CMD\r\n");
       }
@@ -376,20 +362,20 @@ int main(void)
       // Status
       TIO(GPIO_PIN_SET);
       TCD(GPIO_PIN_SET);
-      LOG("status (%x) ...", status);
+      // LOG("status (%x) ...", status);
       writeHandshake(status);
-      LOG(" ok\r\n");
-      if (RATN())
-        LOG("ATN !!\r\n");
+      // LOG(" ok\r\n");
+      // if (RATN())
+      //   LOG("ATN !!\r\n");
 
       // bug avant cette ligne
       // Message In
       TMSG(GPIO_PIN_SET);
-      LOG("message in (%x) ...", 0);
+      // LOG("message in (%x) ...", 0);
       writeHandshake(0);
-      LOG(" ok\r\n");
-      if (RATN())
-        LOG("ATN !!\r\n");
+      // LOG(" ok\r\n");
+      // if (RATN())
+      //   LOG("ATN !!\r\n");
 
       TCD(GPIO_PIN_RESET);
       TIO(GPIO_PIN_RESET);
@@ -421,7 +407,16 @@ int main(void)
       TIO(GPIO_PIN_RESET);
       TMSG(GPIO_PIN_SET);
 
-      uint8_t msg = readHandshake();
+      DWT->CYCCNT = 0;
+
+      while (1)
+      {
+        // wait 400ns for the bus to settle
+        if (stopwatch_getticks() >= 29)
+          break;
+      }
+
+      uint8_t msg = readHandshakeMessageOut();
       LOG("0x%x\r\n", msg);
 
       // 0x08 is no operation
@@ -462,7 +457,7 @@ int main(void)
       TMSG(GPIO_PIN_RESET);
 
       // flag byte
-      writeHandshake(1);
+      writeHandshake(0x21);
       LOG(".");
 
       // id byte
@@ -483,6 +478,50 @@ int main(void)
         LOG(".");
       }
       LOG("\r\n");
+
+      if (RATN())
+      {
+        LOG("MESSAGE OUT : ");
+
+        // message out
+        TCD(GPIO_PIN_SET);
+        TIO(GPIO_PIN_RESET);
+        TMSG(GPIO_PIN_SET);
+
+        msg = readHandshakeMessageOut();
+        LOG("0x%x\r\n", msg);
+        LOG("BUS FREE after %u\r\n", msg);
+
+        TDB0_GPIO_Port->ODR &= 0xff00;
+        TCD(GPIO_PIN_RESET);
+        TIO(GPIO_PIN_RESET);
+        TMSG(GPIO_PIN_RESET);
+        TREQ(GPIO_PIN_RESET);
+        TDBP(GPIO_PIN_RESET);
+        TBSY(GPIO_PIN_RESET);
+
+        scsi_re_selected = 0;
+        HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+      }
+
+      LOG("MESSAGE OUT : ");
+
+      // message out
+      TCD(GPIO_PIN_SET);
+      TIO(GPIO_PIN_RESET);
+      TMSG(GPIO_PIN_SET);
+
+      DWT->CYCCNT = 0;
+
+      while (1)
+      {
+        // wait 400ns for the bus to settle
+        if (stopwatch_getticks() >= 29)
+          break;
+      }
+
+      msg = readHandshakeMessageOut();
+      LOG("0x%x\r\n", msg);
 
       // LOG("MESSAGE OUT : ");
 
@@ -721,6 +760,43 @@ static void MX_SPI2_Init(void)
 }
 
 /**
+ * @brief TIM6 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 72;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 2000;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_ENABLE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
+}
+
+/**
  * @brief GPIO Initialization Function
  * @param None
  * @retval None
@@ -752,17 +828,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RRST_Pin */
-  GPIO_InitStruct.Pin = RRST_Pin;
+  /*Configure GPIO pins : RRST_Pin RBSY_Pin */
+  GPIO_InitStruct.Pin = RRST_Pin | RBSY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(RRST_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : RBSY_Pin */
-  GPIO_InitStruct.Pin = RBSY_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(RBSY_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RDB0_Pin RDB1_Pin RDB2_Pin RDB3_Pin
                            RDB4_Pin RDB5_Pin RDB6_Pin RDB7_Pin

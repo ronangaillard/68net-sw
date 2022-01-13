@@ -212,12 +212,12 @@ void encoldInit()
   // do bank 3 stuff
   // write MAC address
   // NOTE: MAC address in ENC28J60 is byte-backward
-  encWrite(MAADR5, 0x11);
-  encWrite(MAADR4, 0x22);
-  encWrite(MAADR3, 0x33);
-  encWrite(MAADR2, 0x44);
-  encWrite(MAADR1, 0x55);
-  encWrite(MAADR0, 0x66);
+  encWrite(MAADR5, 0x02);
+  encWrite(MAADR4, 0x00);
+  encWrite(MAADR3, 0x00);
+  encWrite(MAADR2, 0xBE);
+  encWrite(MAADR1, 0xEE);
+  encWrite(MAADR0, 0xEF);
   // no loopback of transmitted frames
   encPhyWrite(PHCON2, PHCON2_HDLDIS);
   // switch to bank 0
@@ -348,10 +348,11 @@ uint16_t encPacketReceive(uint16_t maxlen, uint8_t *packet)
 
   // Set the read pointer to the start of the received packet
   encWriteWord(ERDPTL, gNextPacketPtr);
+  
   // read the next packet pointer
   gNextPacketPtr = encReadBufferWord();
   // read the packet length (see datasheet page 43)
-  len = encReadBufferWord() - 4;
+  len = encReadBufferWord();
   // read the receive status (see datasheet page 43)
   rxstat = encReadBufferWord();
   // limit retrieve length
