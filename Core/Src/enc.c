@@ -247,7 +247,8 @@ void encInit()
   // TX end
   encWriteWord(ETXNDL, TXSTOP_INIT);
 
-  erxfcon = ERXFCON_UCEN | ERXFCON_CRCEN | ERXFCON_PMEN | ERXFCON_BCEN;
+  // erxfcon = ERXFCON_UCEN | ERXFCON_CRCEN | ERXFCON_PMEN | ERXFCON_BCEN;
+  erxfcon = 0;
   encWrite(ERXFCON, erxfcon);
   encWriteWord(EPMM0, 0x303f);
   encWriteWord(EPMCSL, 0xf7f9);
@@ -278,12 +279,14 @@ void encInit()
 
   // assign initial MAC address to what the configuration specifies
   // f6:d3:52:b6:8c:f0
-  encWrite(MAADR0, 0x00);
-  encWrite(MAADR1, 0xe0);
-  encWrite(MAADR2, 0x4c);
-  encWrite(MAADR3, 0x6d);
-  encWrite(MAADR4, 0x11);
-  encWrite(MAADR5, 0x08);
+// write MAC address
+  // NOTE: MAC address in ENC28J60 is byte-backward
+  encWrite(MAADR5, 0x02);
+  encWrite(MAADR4, 0x00);
+  encWrite(MAADR3, 0x00);
+  encWrite(MAADR2, 0xBE);
+  encWrite(MAADR1, 0xEE);
+  encWrite(MAADR0, 0xEF);
 
   // no loopback of transmitted frames
   encPhyWrite(PHCON2, PHCON2_HDLDIS);

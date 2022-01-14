@@ -43,6 +43,7 @@ uint8_t readHandshake(void)
   {
     if (RATN())
     {
+      TREQ(GPIO_PIN_RESET);
       return 0;
     }
   }
@@ -60,31 +61,64 @@ uint8_t readHandshake(void)
 
 uint8_t readHandshakeMessageOut(void)
 {
-   TREQ(GPIO_PIN_RESET);
+  TREQ(GPIO_PIN_RESET);
+  TDBP(GPIO_PIN_RESET);
   TDB0_GPIO_Port->ODR &= 0xff00;
 
   while (RACK())
   {
   }
 
-  DWT->CYCCNT = 0;
+  MESSAGE_OUT();
 
-  while (1)
-  {
-    // wait 400ns for the bus to settle
-    if (stopwatch_getticks() >= 29)
-      break;
-  }
-
+  // wait 400ns for the bus to settle
+  CYCLE_SLEEP(29);
 
   TREQ(GPIO_PIN_SET);
+  uint32_t i = 65000000;
   while (!RACK())
   {
+    i--;
+    if (i == 0)
+    {
+      // log state to debug
+      LOG("\r\n\r\n--- locked - stacktrace ---");
+      LOG("Waiting for ACK to assert\r\n");
+      LOG("Bus status\r\n");
+      LOG("Bus value : 0x%02X\r\n", readBus());
+      LOG("ACK : %s\r\n", RACK() ? "asserted" : "not asserted");
+      LOG("RST : %s\r\n", RRST() ? "asserted" : "not asserted");
+      LOG("BSY : %s\r\n", RBSY() ? "asserted" : "not asserted");
+      LOG("ATN : %s\r\n", RATN() ? "asserted" : "not asserted");
+      LOG("DBP : %s\r\n", RDBP() ? "asserted" : "not asserted");
+      LOG("SEL : %s\r\n", RSEL() ? "asserted" : "not asserted");
+
+      while (1)
+        ;
+    }
   }
   uint8_t r = readBus();
+  i = 65000000;
   TREQ(GPIO_PIN_RESET);
   while (RACK())
   {
+    i--;
+    if (i == 0)
+    {
+      // log state to debug
+      LOG("\r\n\r\n--- locked - stacktrace ---");
+      LOG("Waiting for ACK to deassert\r\n");
+      LOG("Bus status\r\n");
+      LOG("Bus value : 0x%02X\r\n", readBus());
+      LOG("ACK : %s\r\n", RACK() ? "asserted" : "not asserted");
+      LOG("RST : %s\r\n", RRST() ? "asserted" : "not asserted");
+      LOG("BSY : %s\r\n", RBSY() ? "asserted" : "not asserted");
+      LOG("ATN : %s\r\n", RATN() ? "asserted" : "not asserted");
+      LOG("DBP : %s\r\n", RDBP() ? "asserted" : "not asserted");
+      LOG("SEL : %s\r\n", RSEL() ? "asserted" : "not asserted");
+      while (1)
+        ;
+    }
   }
   return r;
 }
@@ -112,6 +146,7 @@ void writeHandshake(uint8_t d)
   {
     if (RATN())
     {
+      TREQ(GPIO_PIN_RESET);
       return;
     }
   }

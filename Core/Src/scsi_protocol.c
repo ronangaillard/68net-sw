@@ -14,6 +14,7 @@ extern uint8_t rbsy_log;
 extern volatile uint8_t packet_received;
 extern volatile uint8_t ready_to_message_packets;
 extern TIM_HandleTypeDef htim6;
+extern volatile uint8_t packet_reception_allowed;
 
 void handle_scsi_com()
 {
@@ -35,15 +36,18 @@ void handle_scsi_com()
             return;
         }
 
-        if (!RSEL() && packet_received && !scsi_re_selected)
+        if (!RSEL() && packet_received && !scsi_re_selected && packet_reception_allowed)
         {
+            ClearTimCount();
+            ClearTimeFlag();
+            EnableTim();
             HAL_TIM_Base_Start_IT(&htim6);
         }
     }
     else
     {
         // someone is using the bus, do not try to reselect
-        HAL_TIM_Base_Stop_IT(&htim6);
+       DisableTim();
     }
 }
 
@@ -52,7 +56,7 @@ void reselect()
     uint8_t requestId;
 
     if (RBSY()){
-        HAL_TIM_Base_Stop_IT(&htim6);
+        DisableTim();
         return;
     }
     // arbitration
@@ -137,12 +141,7 @@ void reselect()
         if (!RBSY())
         {
             // mac did not understand it was selected
-            TDB0_GPIO_Port->ODR &= 0xff00;
-            TBSY(GPIO_PIN_RESET);
-            TIO(GPIO_PIN_RESET);
-            TDBP(GPIO_PIN_RESET);
-            TSEL(GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+           BUS_FREE();
             return;
         }
 
@@ -162,14 +161,13 @@ void reselect()
 
         scsi_re_selected = 1;
 
-        HAL_TIM_Base_Stop_IT(&htim6);
+
+        DisableTim();
+
     }
     else
     {
         // lost arbitration
-        TDB0_GPIO_Port->ODR &= 0xff00;
-        TBSY(GPIO_PIN_RESET);
-        TDBP(GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
+        BUS_FREE();
     }
 }

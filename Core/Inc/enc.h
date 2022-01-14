@@ -51,7 +51,7 @@ uint16_t encPacketReceive(uint16_t maxlen, uint8_t *packet);
 #define TXSTOP_INIT      0x1FFF
 //
 // max frame length which the conroller will accept:
-#define        MAX_FRAMELEN        1500        // (note: maximum ethernet frame length would be 1518)
+#define        MAX_FRAMELEN        800        // (note: maximum ethernet frame length would be 1518)
 //#define MAX_FRAMELEN     600
 
 // All-bank registers

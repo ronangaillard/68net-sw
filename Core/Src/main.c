@@ -57,6 +57,7 @@ volatile uint8_t log_please = 0;
 volatile uint8_t rsel_log = 0;
 volatile uint8_t rbsy_log = 0;
 volatile uint8_t packet_received = 0;
+volatile uint8_t packet_reception_allowed = 0;
 
 volatile uint8_t ready_to_message_packets = 0;
 
@@ -251,7 +252,6 @@ int main(void)
   uint8_t buf[MAX_PACKET_SIZE];
   uint16_t buf_size = 0;
   GPIO_PinState ps = GPIO_PIN_RESET;
-  
 
   stopwatch_reset();
   // 0x2a=42=len of packet
@@ -263,7 +263,7 @@ int main(void)
   // 0x2a=42=len of packet
   //  encSendPacket(buf, 42);
   //  }
-
+  uint8_t cmmd_mcast_count = 0;
   while (1)
   {
     /* USER CODE END WHILE */
@@ -271,16 +271,25 @@ int main(void)
     /* USER CODE BEGIN 3 */
     // Wait for reset
     status = 0;
-    if (!packet_received)
+    // if (!packet_received)
+    // {
+    uint16_t size = encPacketReceive(MAX_PACKET_SIZE, buf);
+    if (size != 0)
     {
-      uint16_t size = encPacketReceive(MAX_PACKET_SIZE, buf);
-      if (size != 0)
+      LOG("received packet of %hu bytes ", size);
+      buf_size = size;
+      if ((buf[0] == 0 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0 && buf[4] == 0 && buf[5] == 0) ||
+          buf[0] == 0x02 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0xbe && buf[4] == 0xee && buf[5] == 0xef)
       {
-        LOG("received packet of %hu bytes\r\n", size);
-        buf_size = size;
         packet_received = 1;
+        LOG(" : accepted\r\n");
+      }
+      else
+      {
+        LOG(" : rejected\r\n");
       }
     }
+    // }
 
     if (scsi_selected)
     {
@@ -340,7 +349,31 @@ int main(void)
         break;
       case 0x09: // "Set Filter"
         LOG("[Set Filter]\r\n");
-        onSetFilter(cmd);
+        // onSetFilter(cmd);
+
+        // data out
+        TMSG(GPIO_PIN_RESET);
+        TIO(GPIO_PIN_RESET);
+        TCD(GPIO_PIN_RESET);
+
+        for (uint8_t z = 0; z <= 8; z++)
+        {
+          uint8_t dat = readHandshake();
+          LOG("0x%x ", dat);
+          if (z == 3 && dat == 0x80)
+          {
+            packet_reception_allowed = 1;
+            LOG("Packet reception allowed\r\n");
+          }
+          if (z == 3 && dat == 0x00)
+          {
+            packet_reception_allowed = 0;
+            LOG("Packet reception disabled\r\n");
+          }
+        }
+
+        TCD(GPIO_PIN_SET);
+
         break;
       case 0x0C: // "Medium Sense"
         LOG("[Medium Sense]\r\n");
@@ -377,23 +410,9 @@ int main(void)
       // if (RATN())
       //   LOG("ATN !!\r\n");
 
-      TCD(GPIO_PIN_RESET);
-      TIO(GPIO_PIN_RESET);
-      TMSG(GPIO_PIN_RESET);
-      TBSY(GPIO_PIN_RESET);
-
+      BUS_FREE();
       LOG("BUS FREE\r\n");
       scsi_selected = 0;
-
-      TDB0_GPIO_Port->ODR &= 0xff00;
-      TCD(GPIO_PIN_RESET);
-      TIO(GPIO_PIN_RESET);
-      TMSG(GPIO_PIN_RESET);
-      TREQ(GPIO_PIN_RESET);
-      TDBP(GPIO_PIN_RESET);
-      TBSY(GPIO_PIN_RESET);
-
-      HAL_GPIO_WritePin(STATUS_LED_GPIO_Port, STATUS_LED_Pin, GPIO_PIN_SET);
     }
 
     if (scsi_re_selected)
@@ -401,20 +420,6 @@ int main(void)
       LOG("WON ARBITRATION AFTER RESELECTION for packet of size : %hu\r\n", buf_size);
 
       LOG("MESSAGE OUT : ");
-
-      // message out
-      TCD(GPIO_PIN_SET);
-      TIO(GPIO_PIN_RESET);
-      TMSG(GPIO_PIN_SET);
-
-      DWT->CYCCNT = 0;
-
-      while (1)
-      {
-        // wait 400ns for the bus to settle
-        if (stopwatch_getticks() >= 29)
-          break;
-      }
 
       uint8_t msg = readHandshakeMessageOut();
       LOG("0x%x\r\n", msg);
@@ -457,7 +462,7 @@ int main(void)
       TMSG(GPIO_PIN_RESET);
 
       // flag byte
-      writeHandshake(0x21);
+      writeHandshake(0x1);
       LOG(".");
 
       // id byte
@@ -469,13 +474,13 @@ int main(void)
       writeHandshake(buf_size & 0xff);
       LOG(".");
       writeHandshake((buf_size >> 8) & 0xff);
-      LOG(".");
+      LOG(".\r\n");
 
       // packet
       for (uint16_t i = 0; i < buf_size; i++)
       {
         writeHandshake(buf[i]);
-        LOG(".");
+        LOG("%02X ", buf[i]);
       }
       LOG("\r\n");
 
@@ -779,7 +784,7 @@ static void MX_TIM6_Init(void)
   htim6.Instance = TIM6;
   htim6.Init.Prescaler = 72;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 2000;
+  htim6.Init.Period = 20000;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
