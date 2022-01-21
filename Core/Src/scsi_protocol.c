@@ -36,7 +36,7 @@ void handle_scsi_com()
             return;
         }
 
-        if (!RSEL() && packet_received && !scsi_re_selected && packet_reception_allowed)
+        if (!RSEL())
         {
             ClearTimCount();
             ClearTimeFlag();
@@ -53,6 +53,10 @@ void handle_scsi_com()
 
 void reselect()
 {
+    if(!packet_received) {
+        return;
+    }
+
     uint8_t requestId;
 
     if (RBSY()){
@@ -160,10 +164,6 @@ void reselect()
         TIO(GPIO_PIN_RESET);
 
         scsi_re_selected = 1;
-
-
-        DisableTim();
-
     }
     else
     {
