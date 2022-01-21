@@ -279,7 +279,9 @@ int main(void)
       LOG("received packet of %hu bytes ", size);
       buf_size = size;
       if ((buf[0] == 0 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0 && buf[4] == 0 && buf[5] == 0) ||
-          buf[0] == 0x02 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0xbe && buf[4] == 0xee && buf[5] == 0xef)
+          buf[0] == 0x02 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0xbe && buf[4] == 0xee && buf[5] == 0xef ||
+          buf[0] == 0x09 && buf[1] == 0 && buf[2] == 0x07 && buf[3] == 0xff && buf[4] == 0xff && buf[5] == 0xff // AppleShare broadcast 
+)
       {
         packet_received = 1;
         LOG(" : accepted\r\n");
