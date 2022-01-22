@@ -47,19 +47,21 @@ void handle_scsi_com()
     else
     {
         // someone is using the bus, do not try to reselect
-       DisableTim();
+        DisableTim();
     }
 }
 
 void reselect()
 {
-    if(!packet_received) {
+    if (!packet_received)
+    {
         return;
     }
 
     uint8_t requestId;
 
-    if (RBSY()){
+    if (RBSY())
+    {
         DisableTim();
         return;
     }
@@ -145,7 +147,8 @@ void reselect()
         if (!RBSY())
         {
             // mac did not understand it was selected
-           BUS_FREE();
+            BUS_FREE();
+            __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_2);
             return;
         }
 
@@ -164,6 +167,8 @@ void reselect()
         TIO(GPIO_PIN_RESET);
 
         scsi_re_selected = 1;
+
+        __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_2);
     }
     else
     {

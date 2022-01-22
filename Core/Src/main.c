@@ -250,6 +250,7 @@ int main(void)
                    0x00, 0x06, 0x04, 0x00, 0x01, 0x00, 0xE0, 0x4C, 0x6D, 0x11, 0x08, 0xC0, 0xA8, 0x11, 0x02, 0x00, 0x00,
                    0x00, 0x00, 0x00, 0x00, 0xC0, 0xA8, 0x11, 0x01};
   uint8_t buf[MAX_PACKET_SIZE];
+   uint8_t tmp_buf[MAX_PACKET_SIZE];
   uint16_t buf_size = 0;
   GPIO_PinState ps = GPIO_PIN_RESET;
 
@@ -273,17 +274,17 @@ int main(void)
     status = 0;
     // if (!packet_received)
     // {
-    uint16_t size = encPacketReceive(MAX_PACKET_SIZE, buf);
+    uint16_t size = encPacketReceive(MAX_PACKET_SIZE, tmp_buf);
     if (size != 0)
     {
       LOG("received packet of %hu bytes ", size);
       buf_size = size;
-      if ((buf[0] == 0 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0 && buf[4] == 0 && buf[5] == 0) ||
-          buf[0] == 0x02 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0xbe && buf[4] == 0xee && buf[5] == 0xef ||
-          buf[0] == 0x09 && buf[1] == 0 && buf[2] == 0x07 && buf[3] == 0xff && buf[4] == 0xff && buf[5] == 0xff // AppleShare broadcast 
-)
+      if ((tmp_buf[0] == 0 && tmp_buf[1] == 0 && tmp_buf[2] == 0 && tmp_buf[3] == 0 && tmp_buf[4] == 0 && tmp_buf[5] == 0) ||
+          (tmp_buf[0] == 0x02 && tmp_buf[1] == 0 && tmp_buf[2] == 0 && tmp_buf[3] == 0xbe && tmp_buf[4] == 0xee && tmp_buf[5] == 0xef) ||
+          (tmp_buf[0] == 0x09 && tmp_buf[1] == 0 && tmp_buf[2] == 0x07 && tmp_buf[3] == 0xff && tmp_buf[4] == 0xff && tmp_buf[5] == 0xff )) // AppleShare broadcast 
       {
         packet_received = 1;
+        memcpy(buf, tmp_buf, size);
         LOG(" : accepted\r\n");
       }
       else
@@ -469,14 +470,14 @@ int main(void)
 
       // id byte
       writeHandshake(packet_id);
+      LOG("%02X,", packet_id);
       packet_id++;
-      LOG(".");
 
       // packet size
       writeHandshake(buf_size & 0xff);
-      LOG(".");
+       LOG("%02X,", buf_size & 0xff);
       writeHandshake((buf_size >> 8) & 0xff);
-      LOG(".\r\n");
+      LOG("%02X\r\n", (buf_size >> 8) & 0xff);
 
       // packet
       for (uint16_t i = 0; i < buf_size; i++)
